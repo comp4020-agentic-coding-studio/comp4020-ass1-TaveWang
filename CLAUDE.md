@@ -1,12 +1,11 @@
 # COMP4020 prototype
 
-This is your starter repo for a COMP4020 prototype: a static site written in
-HTML/CSS/TypeScript that builds to plain HTML/CSS/JS and deploys to GitHub
-Pages. The **deployed site is what gets marked** --- not this repo, and not "it
-works on my machine". It's marked live in Chrome against the deployed URL at two
-viewports --- 1920×1080 (desktop) and 390×844 (phone) --- and both count in
-full, so make that artefact good at both and use the checks below to know
-whether it is.
+This is your repo for a COMP4020 prototype: a static site built with **Astro +
+React islands**, deployed to GitHub Pages. The **deployed site is what gets
+marked** --- not this repo, and not "it works on my machine". It's marked live
+in Chrome against the deployed URL at two viewports --- 1920×1080 (desktop) and
+390×844 (phone) --- and both count in full, so make that artefact good at both
+and use the checks below to know whether it is.
 
 What you're building this week — the spec — is published on the course website,
 and this repo's name tells you which deliverable it is. Run the course plugin's
@@ -52,10 +51,11 @@ They also carry a mark at a crit: the sweep runs fifteen minutes after your
 cutoff, and green checks there are worth half that week's shipped mark. Still
 running counts as not green, so ship with time for CI to finish.
 
-- **typecheck** --- `tsc --noEmit` runs first in `pnpm check`, so a type error
-  stops the roster before the build even starts. The types are extra
-  backpressure: a red here is the compiler telling you a claim in the code is
-  false.
+- **typecheck** --- `astro check` runs first in `pnpm check`, so a type error
+  stops the roster before the build even starts. (It replaced `tsc --noEmit`
+  when the stack switched to Astro: `tsc` alone does not see inside `.astro`
+  files.) The types are extra backpressure: a red here is the compiler telling
+  you a claim in the code is false.
 - **build** --- the site must build (`pnpm build`). A build failure means the
   deployed site is broken or stale, so nothing else matters until this is green.
 - **deploy / online** --- the live GitHub Pages URL must load and return the
@@ -95,24 +95,87 @@ in the course the spec will ask you to show how you tested both. When you do,
 read a green performance result honestly: it's a lab estimate from one run on a
 CI machine, not proof the site is fast for real users.
 
-## The stack is swappable
+## The stack: Astro + React islands, and why
 
-Out of the box this is plain HTML/CSS/TypeScript on Vite, and every `.html` file
-in the repo is a page: add pages, link them, and the build picks them up with no
-config. That's a default, not a rule (unless the week's spec says otherwise).
-You can swap in Astro or any other static generator, because nothing in CI names
-a tool --- the whole contract is:
+The template ships plain HTML/CSS/TypeScript on Vite. Last week's brief needed
+real interactivity, so it was swapped for Astro with React islands, and this
+deliverable keeps that swap. The contract CI enforces is unchanged: `pnpm build`
+emits the whole site into `dist/`, the `check`, `check:evidence` and `build`
+scripts keep working, and whatever lands in `dist/` passes `spec/`.
 
-- `pnpm build` emits the complete site into `dist/`
-- the `package.json` scripts (`check`, `check:evidence`, `build`) keep working
-- whatever lands in `dist/` still passes the invariants in `spec/`
+**Never use `client:only`.** The invariants parse the *built* HTML, so they need
+`<nav>`, the single `<h1>` and every `alt` to be in the file on disk. Astro
+server-renders `client:load` and `client:visible` islands at build time and
+hydrates them afterwards, so their markup ships; `client:only` renders nothing
+at build and would fail the invariants against an empty shell. This is exactly
+why a plain client-side React app is not an option here.
 
-Two things bite in a swap. The deployed site lives under a path
-(`…github.io/<repo>/`), so configure your generator's base path --- this
-template's Vite config uses relative asset URLs to sidestep that, but most
-generators (Astro included) need `base` set explicitly, and getting it wrong
-looks fine locally while every asset 404s on the live URL. And commit the
-updated `pnpm-lock.yaml`: CI installs with `--frozen-lockfile`.
+Above the fold is a natural fit for `client:load`; content further down can use
+`client:visible`. One consequence when testing: a `client:visible` island is
+**not interactive until it is scrolled into view**, so driving it in a browser
+needs a `scrollIntoView()` first or the click lands on un-hydrated markup and
+silently does nothing.
+
+## Every URL this build emits must be relative
+
+The deployed site lives under a subpath
+(`…github.io/comp4020-ass1-TaveWang/`), but CI runs `linkinator ./dist`, which
+serves `dist/` at the **root**. No absolute URL satisfies both, and getting it
+wrong looks perfect locally while every asset 404s on the live URL.
+
+`astro.config.mjs` handles it with two settings, not with `base`:
+
+- `build.format: "file"` --- pages land flat (`dist/index.html`,
+  `dist/whatever.html`), so `./whatever.html` resolves the same from any page,
+  and `dist/index.html` stays where `spec/invariants.test.ts` looks for the
+  home page.
+- `build.assetsPrefix: "."` --- emits `./_astro/x.js` instead of `/_astro/x.js`.
+
+Links you hand-write are still your problem: write `./whatever.html`, never
+`/whatever.html`.
+
+**Dynamic routes must stay flat for the same reason.** `assetsPrefix: "."`
+resolves against the *page's own directory*, so a nested dynamic route like
+`src/pages/thing/[id].astro` would emit `dist/thing/foo.html` looking for
+`dist/thing/_astro/…` and 404 every asset on the deployed site --- while working
+perfectly in `astro preview` served from the root. Keep dynamic-route output
+flat (params baked into the filename, e.g. `src/pages/[slug].astro`) rather than
+nested under a directory.
+
+## Islands can't share state without a store
+
+The page is several separate React roots. Component state cannot travel
+between them directly --- if two islands both need the same live value (a
+count, a selection), reach for a module-level store read through
+`useSyncExternalStore` rather than context, since context does not cross a root
+boundary. `useSyncExternalStore` needs its third argument (the server
+snapshot), or the build-time render throws. (Last week's version of this lives
+in `src/lib/store.ts` if useful as a reference, but nothing here is carried
+forward automatically --- build this again only if this week's design actually
+needs cross-island shared state.)
+
+## stylelint: what I configured and what I left alone
+
+`selector-class-pattern` rejects BEM out of the box. `.stylelintrc.json` widens
+it to accept `block__element--modifier` --- that is a naming convention, not a
+correctness rule, so it's fine to adjust further if this week's CSS wants a
+different convention.
+
+`no-descending-specificity` is left **on**, and is not to be disabled or worked
+around by shuffling blocks. When it fired last week on several near-identical
+rules, the fix was one shared class. Fix it by naming, every time; reordering
+just flips which selector it complains about.
+
+## The rendered page is the truth
+
+Last week the source read fine and the page was broken --- visual overflow, and
+a text node collapsing to nothing because a newline between two inline elements
+disappears in the render. Neither shows up in the DOM and neither fails a test.
+
+Before claiming a visual change works, build it, serve it, and screenshot it at
+**1280** and **390×844** --- both viewports are marked in full. `agent-browser`
+does this well; note that it resets the shell's working directory, so `cd` back
+into the repo before running `pnpm` afterwards.
 
 ## Your process is part of the mark
 
