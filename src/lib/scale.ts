@@ -39,25 +39,30 @@ export function formatDistance(m: number): string {
 }
 
 /**
- * Interpolates the displayed distance for a scroll position, given milestones
- * laid out one-per-section at world position `i * sectionPx`. Linear near
- * ground (log(0) is undefined), log-linear afterwards so the compression
- * needed to fit atmosphere-to-interstellar on one page is continuous rather
- * than a jump-cut at each milestone.
+ * Interpolates the displayed distance for a scroll position, given each
+ * milestone's real pixel position on the page (`anchorsPx[i]`, ascending,
+ * same length as `milestones` — measure these from the actual rendered
+ * sections rather than assuming a fixed section height, since real content
+ * makes sections different heights). Linear near ground (log(0) is
+ * undefined), log-linear afterwards so the compression needed to fit
+ * atmosphere-to-interstellar on one page is continuous rather than a
+ * jump-cut at each milestone.
  */
-export function distanceAtScroll(
+export function distanceAtPosition(
   milestones: Milestone[],
+  anchorsPx: number[],
   scrollY: number,
-  sectionPx: number,
 ): number {
   if (milestones.length === 0) return 0;
-  if (sectionPx <= 0) return milestones[0].distanceM;
 
-  const position = Math.max(0, scrollY) / sectionPx;
-  const i = Math.min(Math.floor(position), milestones.length - 1);
-  if (i >= milestones.length - 1) return milestones[milestones.length - 1].distanceM;
+  const y = Math.max(anchorsPx[0], Math.min(scrollY, anchorsPx[anchorsPx.length - 1]));
 
-  const t = Math.min(Math.max(position - i, 0), 1);
+  let i = 0;
+  while (i < anchorsPx.length - 2 && y >= anchorsPx[i + 1]) i++;
+
+  const spanPx = anchorsPx[i + 1] - anchorsPx[i];
+  const t = spanPx > 0 ? (y - anchorsPx[i]) / spanPx : 0;
+
   const a = milestones[i].distanceM;
   const b = milestones[i + 1].distanceM;
 

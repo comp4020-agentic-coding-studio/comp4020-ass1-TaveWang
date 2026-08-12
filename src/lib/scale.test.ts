@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { distanceAtScroll, formatDistance, layerForDistance, type Milestone } from "./scale";
+import { distanceAtPosition, formatDistance, layerForDistance, type Milestone } from "./scale";
 
 const SECTION_PX = 900;
 
@@ -9,40 +9,52 @@ const MILESTONES: Milestone[] = [
   { id: "c", name: "C", distanceM: 384_400_000, category: "orbit", fact: "", source: { name: "", url: "" } },
 ];
 
-describe("distanceAtScroll", () => {
+// Real anchors come from measuring rendered section positions; a uniform
+// spacing here is just the simplest stand-in for that in a test.
+const ANCHORS = MILESTONES.map((_, i) => i * SECTION_PX);
+
+describe("distanceAtPosition", () => {
   it("starts at the first milestone's distance", () => {
-    expect(distanceAtScroll(MILESTONES, 0, SECTION_PX)).toBe(0);
+    expect(distanceAtPosition(MILESTONES, ANCHORS, 0)).toBe(0);
   });
 
-  it("reaches each milestone's exact distance at its section boundary", () => {
-    expect(distanceAtScroll(MILESTONES, SECTION_PX, SECTION_PX)).toBeCloseTo(100_000);
-    expect(distanceAtScroll(MILESTONES, SECTION_PX * 2, SECTION_PX)).toBeCloseTo(384_400_000);
+  it("reaches each milestone's exact distance at its anchor", () => {
+    expect(distanceAtPosition(MILESTONES, ANCHORS, SECTION_PX)).toBeCloseTo(100_000);
+    expect(distanceAtPosition(MILESTONES, ANCHORS, SECTION_PX * 2)).toBeCloseTo(384_400_000);
   });
 
   it("is monotonically non-decreasing as scroll increases", () => {
     let previous = -Infinity;
     for (let px = 0; px <= SECTION_PX * 3; px += 17) {
-      const distance = distanceAtScroll(MILESTONES, px, SECTION_PX);
+      const distance = distanceAtPosition(MILESTONES, ANCHORS, px);
       expect(distance).toBeGreaterThanOrEqual(previous);
       previous = distance;
     }
   });
 
   it("clamps to the last milestone past the end of the journey", () => {
-    expect(distanceAtScroll(MILESTONES, SECTION_PX * 50, SECTION_PX)).toBe(384_400_000);
+    // exp(log(x)) doesn't always round-trip exactly, so this is toBeCloseTo,
+    // not toBe.
+    expect(distanceAtPosition(MILESTONES, ANCHORS, SECTION_PX * 50)).toBeCloseTo(384_400_000);
   });
 
   it("clamps to the first milestone for negative scroll", () => {
-    expect(distanceAtScroll(MILESTONES, -500, SECTION_PX)).toBe(0);
+    expect(distanceAtPosition(MILESTONES, ANCHORS, -500)).toBe(0);
   });
 
   it("compresses log-linearly, not linearly, once past a zero-distance milestone", () => {
     // Halfway (in scroll terms) between 100,000 m and 384,400,000 m should be
     // far below the linear midpoint — that's the whole point of the log
     // interpolation: most of the *scroll* is spent on the smallest distances.
-    const halfway = distanceAtScroll(MILESTONES, SECTION_PX * 1.5, SECTION_PX);
+    const halfway = distanceAtPosition(MILESTONES, ANCHORS, SECTION_PX * 1.5);
     const linearMidpoint = (100_000 + 384_400_000) / 2;
     expect(halfway).toBeLessThan(linearMidpoint / 10);
+  });
+
+  it("handles unevenly-spaced anchors (real sections have different heights)", () => {
+    const uneven = [0, 500, 3_000];
+    expect(distanceAtPosition(MILESTONES, uneven, 250)).toBeCloseTo(50_000);
+    expect(distanceAtPosition(MILESTONES, uneven, 500)).toBeCloseTo(100_000);
   });
 });
 
