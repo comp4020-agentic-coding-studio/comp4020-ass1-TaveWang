@@ -1,5 +1,10 @@
 ---
 import "../styles/global.css";
+import { MILESTONES } from "../data/milestones";
+import { formatDistance, layerForDistance } from "../lib/scale";
+
+const sources = [...new Map(MILESTONES.map((m) => [m.source.url, m.source])).values()];
+const first = MILESTONES[0];
 ---
 
 <!doctype html>
@@ -7,20 +12,87 @@ import "../styles/global.css";
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>COMP4020 prototype</title>
+    <title>UP: How Far Until Earth Disappears?</title>
   </head>
   <body>
-    <header>
+    <div class="hud" aria-live="polite">
+      <p class="hud__readout">
+        <span data-testid="distance" data-distance-m={first.distanceM}>
+          {formatDistance(first.distanceM)}
+        </span>
+        <span class="hud__layer">{layerForDistance(first.distanceM)}</span>
+      </p>
+    </div>
+
+    <header class="site-header">
       <nav aria-label="Primary">
-        <a href="./">Home</a>
+        <a href="#top">Home</a>
       </nav>
     </header>
-    <main>
-      <h1>COMP4020 prototype</h1>
-      <p data-testid="intro">
-        Replace this with your prototype. This week's brief is on the course website;
-        <code>spec/README.md</code> explains how the checks in this repo relate to it.
-      </p>
+
+    <main id="top">
+      <section class="intro">
+        <h1>UP: How Far Until Earth Disappears?</h1>
+        <p>
+          Scroll to travel straight up from where you're standing — through the
+          air, past the edge of space, out across the Solar System. The
+          distance above always reads true; how much of it fits on your screen
+          at once does not, and that trade-off is explained as it happens.
+        </p>
+      </section>
+
+      {
+        MILESTONES.map((milestone) => (
+          <section class="milestone" id={milestone.id} data-category={milestone.category}>
+            <h2>{milestone.name}</h2>
+            <p class="milestone__distance">{formatDistance(milestone.distanceM)}</p>
+            <p>{milestone.fact}</p>
+            {milestone.note && <p class="milestone__note">{milestone.note}</p>}
+            {milestone.id === "sea-level" && (
+              <dl class="milestone__air">
+                <dt>Nitrogen</dt>
+                <dd>78.08%</dd>
+                <dt>Oxygen</dt>
+                <dd>20.95%</dd>
+                <dt>Argon</dt>
+                <dd>0.93%</dd>
+                <dt>Everything else (CO₂, etc.)</dt>
+                <dd>0.04%</dd>
+              </dl>
+            )}
+            <p class="milestone__source">
+              Source: <a href={milestone.source.url}>{milestone.source.name}</a>
+            </p>
+            {milestone.id === "karman-line" && (
+              <p class="notice" data-testid="scale-notice">
+                From here on, each screen you scroll represents far more real
+                distance than the one before it. That compression is
+                deliberate — it's the only way the atmosphere and the outer
+                Solar System fit on one page — and the number above is always
+                the true distance, however the page compresses it visually.
+              </p>
+            )}
+          </section>
+        ))
+      }
+
+      <section class="outro">
+        <p>
+          That's as far as this page goes.{" "}
+          <a data-testid="restart" href="#top">Back to Earth ↑</a>
+        </p>
+      </section>
+
+      <section data-testid="sources" aria-label="Sources">
+        <h2>Sources</h2>
+        <ul>
+          {sources.map((source) => (
+            <li>
+              <a href={source.url}>{source.name}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
     </main>
   </body>
 </html>
