@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { distanceAtPosition, formatDistance, layerForDistance, type Milestone } from "./scale";
+import {
+  distanceAtPosition,
+  formatDistance,
+  layerForDistance,
+  percentForPosition,
+  positionForPercent,
+  type Milestone,
+} from "./scale";
 
 const SECTION_PX = 900;
 
@@ -68,6 +75,28 @@ describe("formatDistance", () => {
     [6_060_000_000_000, "6.06 billion km"],
   ])("formats %d as %s", (m, expected) => {
     expect(formatDistance(m)).toBe(expected);
+  });
+});
+
+describe("percentForPosition / positionForPercent", () => {
+  it("round-trip: position -> percent -> position lands back on the anchor", () => {
+    expect(positionForPercent(ANCHORS, percentForPosition(ANCHORS, ANCHORS[0]))).toBeCloseTo(ANCHORS[0]);
+    expect(positionForPercent(ANCHORS, percentForPosition(ANCHORS, ANCHORS[2]))).toBeCloseTo(ANCHORS[2]);
+  });
+
+  it("maps the start and end of the journey to 0 and 100 percent", () => {
+    expect(percentForPosition(ANCHORS, ANCHORS[0])).toBe(0);
+    expect(percentForPosition(ANCHORS, ANCHORS[ANCHORS.length - 1])).toBe(100);
+  });
+
+  it("clamps percent to the journey's ends for out-of-range scroll", () => {
+    expect(percentForPosition(ANCHORS, -500)).toBe(0);
+    expect(percentForPosition(ANCHORS, ANCHORS[ANCHORS.length - 1] + 5_000)).toBe(100);
+  });
+
+  it("clamps out-of-range percent to the journey's ends", () => {
+    expect(positionForPercent(ANCHORS, -10)).toBe(ANCHORS[0]);
+    expect(positionForPercent(ANCHORS, 110)).toBe(ANCHORS[ANCHORS.length - 1]);
   });
 });
 

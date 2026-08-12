@@ -85,6 +85,21 @@ describe("the restart control", () => {
   });
 });
 
+describe("the distance scrubber", () => {
+  it("is a real, keyboard-operable range control with an accessible name", () => {
+    const scrubber = home.querySelector('[data-testid="scrubber"]');
+    expect(scrubber, "expected a [data-testid=\"scrubber\"] element").toBeTruthy();
+    expect(
+      scrubber?.tagName === "INPUT" && scrubber.getAttribute("type") === "range",
+      "the scrubber must be a native <input type=\"range\">, so dragging, arrow keys, Home/End, and Page Up/Down all work for free",
+    ).toBe(true);
+    expect(
+      (scrubber?.getAttribute("aria-label")?.trim().length ?? 0) > 0,
+      "the scrubber needs a non-empty aria-label, since it sits outside the HUD's aria-hidden readout text",
+    ).toBe(true);
+  });
+});
+
 describe("sources and the scale-compression disclosure", () => {
   it("cites at least one real external source", () => {
     const sources = home.querySelector('[data-testid="sources"]');

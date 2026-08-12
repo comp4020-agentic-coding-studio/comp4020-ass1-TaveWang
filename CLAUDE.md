@@ -224,6 +224,40 @@ readout is genuinely the only place some information lives, it needs a
 coarser update strategy (e.g. only announce on milestone-entry, not every
 frame), not a bare `aria-live="polite"` on a per-frame value.
 
+**A focusable control can't live inside an `aria-hidden="true"` ancestor —
+adding the draggable distance scrubber meant splitting the HUD in two.**
+The HUD div itself used to carry `aria-hidden="true"` on the whole thing
+(readout text and all, per the decision above). Once the scrubber
+(`<input type="range" data-testid="scrubber">`) needed to sit in that same
+box, `aria-hidden` had to move down onto just the `.hud__readout` `<p>` —
+a real interactive control must never be nested under `aria-hidden="true"`,
+since that hides it from assistive tech while leaving it reachable by
+sighted keyboard tabbing, a broken combination. The scrubber gets its own
+`aria-label` instead and is a native `<input type="range">` rather than a
+styled div, so dragging, arrow keys, Home/End, and Page Up/Down all work
+without any custom key handling — same "native control, not a
+reimplementation" rule as the restart link and the no-scroll-hijacking
+decision above. Wiring reuses the existing scroll/render pipeline rather
+than duplicating distance math: the scrubber's `input` handler calls
+`window.scrollTo()` (via `positionForPercent` in `src/lib/scale.ts`), which
+re-triggers the same passive `scroll` listener and `render()` already
+driving the readout, and `render()` sets the scrubber's `.value` from
+`percentForPosition()` so it stays in sync during ordinary scrolling too —
+one source of truth for scroll↔distance↔percent, not three.
+
+**A CSS width fix worth remembering: giving `.hud` a fixed width broke text
+wrapping before it broke anything else.** Adding the scrubber meant giving
+`.hud` an explicit `width` (needed so the range input has something stable
+to be 100% of) instead of the old auto-sized-to-content box. That
+immediately wrapped the longest readout strings ("111 million km" /
+"INTERPLANETARY SPACE") into an ugly multi-line mess, because the old
+`.hud__readout` was a `flex-direction: row` with `align-items: baseline` —
+fine when the box could grow to fit, wrong once the box has a fixed width.
+Fixed by stacking `.hud__readout` as a column instead of a row. Caught by
+actually screenshotting both marking viewports after the change, not by
+`pnpm check` (no test asserts wrapping) — a reminder that a passing test
+suite and a correct-looking layout are different claims.
+
 ## stylelint: what I configured and what I left alone
 
 `selector-class-pattern` rejects BEM out of the box. `.stylelintrc.json` widens

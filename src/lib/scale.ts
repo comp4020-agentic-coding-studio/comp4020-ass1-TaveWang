@@ -72,3 +72,29 @@ export function distanceAtPosition(
   const logB = Math.log(b);
   return Math.exp(logA + (logB - logA) * t);
 }
+
+/**
+ * Where a scroll position sits along the journey, as a 0–100 percent —
+ * the inverse of `positionForPercent`. Used to keep a scrubber control in
+ * sync with normal scrolling.
+ */
+export function percentForPosition(anchorsPx: number[], scrollY: number): number {
+  const start = anchorsPx[0];
+  const end = anchorsPx[anchorsPx.length - 1];
+  const span = end - start;
+  if (span <= 0) return 0;
+  const y = Math.max(start, Math.min(scrollY, end));
+  return ((y - start) / span) * 100;
+}
+
+/**
+ * The scroll position for a given percent (0–100) along the journey — the
+ * inverse of `percentForPosition`. Used to jump the page when a scrubber
+ * control is dragged.
+ */
+export function positionForPercent(anchorsPx: number[], percent: number): number {
+  const start = anchorsPx[0];
+  const end = anchorsPx[anchorsPx.length - 1];
+  const clamped = Math.max(0, Math.min(percent, 100));
+  return start + (clamped / 100) * (end - start);
+}

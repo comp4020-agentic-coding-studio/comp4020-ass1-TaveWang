@@ -15,13 +15,22 @@ const first = MILESTONES[0];
     <title>UP: How Far Until Earth Disappears?</title>
   </head>
   <body>
-    <div class="hud" aria-hidden="true">
-      <p class="hud__readout">
+    <div class="hud">
+      <p class="hud__readout" aria-hidden="true">
         <span data-testid="distance" data-distance-m={first.distanceM}>
           {formatDistance(first.distanceM)}
         </span>
         <span class="hud__layer">{layerForDistance(first.distanceM)}</span>
       </p>
+      <input
+        type="range"
+        class="hud__scrubber"
+        data-testid="scrubber"
+        aria-label="Jump to a point in the journey, from ground level to Voyager 1's Pale Blue Dot"
+        min="0"
+        max="100"
+        value="0"
+      />
     </div>
 
     <header class="site-header">
