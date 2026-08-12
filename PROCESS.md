@@ -1,10 +1,6 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-A reading-guide to how the work came together --- a map to your process, not an
+A reading-guide to how the work came together — a map to your process, not an
 essay about it. Markers read this file and follow its citations; they don't
 trawl the repo for evidence you didn't point at, so if a moment mattered, cite
 it.
@@ -15,69 +11,59 @@ is the requirement, and each brief adds its own word count and moment count.
 
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+"UP: How Far Until Earth Disappears?" is a scroll-driven explainer: scrolling
+maps to increasing distance from Earth, from sea level through the atmosphere,
+past the Kármán line and the ISS, out through the Moon and the planets, to the
+point 6.06 billion km away where Voyager 1 looked back and Earth was 0.12
+pixels wide. The core idea is disclosed compression — the scale that lets
+atmosphere and outer Solar System share one page is log-linear, not linear,
+and the page says so at the exact point the compression starts, with a
+persistent machine-readable distance readout so the number is always true
+even when the scroll-to-distance mapping isn't.
 
 ## The moments that mattered
 
-Three or four for an assignment; fewer is fine for a weekly prototype. Keep the
-list short so each moment has room to do all four jobs:
+**The distance mapping assumed uniform section height, and real content broke
+that before it ever shipped.** The first draft of the scroll→distance function
+placed every milestone at a fixed `i * sectionPx`. Before wiring it to the
+page I noticed some milestones carry a note, a source line, or an
+air-composition table and others don't — section heights aren't uniform, so a
+formula-derived position would drift from the real rendered layout the moment
+copy changed. Instead of shipping the simpler version, I generalized the
+function to take real per-milestone pixel positions measured from the live
+DOM (`getBoundingClientRect`), re-measured on resize. I confirmed it by adding
+an unevenly-spaced-anchor test and by scrolling the real built page in a
+Playwright-driven Chromium session, watching the readout track correctly in
+both directions —
+[`5e39325`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/5e39325).
 
-1. **what happened** --- the problem, or the thing the agent got wrong
-2. **what you did instead of the obvious thing** --- the call you made, and why
-   it beat the obvious one
-3. **how you knew it was right** --- the check you ran, the viewport you looked
-   at, what you read before accepting the diff
-4. **the citation** --- a commit or commit range, a `CLAUDE.md` change, a check
-   that went from red to green, a prompt paired with the commit it produced
+**A failing CSS test turned out to be a wrong assumption in my own test, not a
+bug in the page.** `prefers-reduced-motion` kept reporting missing even after
+I'd added the media query to `global.css`. Re-prompting wouldn't have found
+this — the CSS was already correct. I inspected the actual `dist/` output and
+found Astro inlines small stylesheets into a `<style>` tag instead of always
+emitting `_astro/*.css`; my test only checked the external file. I fixed the
+test's `cssFiles()` helper to scan inline `<style>` tags too, and wrote the
+gotcha into `CLAUDE.md` so a future week's build doesn't lose an afternoon to
+the same false negative —
+[`14f0c02`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/14f0c02).
 
-Jobs 2 and 3 are the ones the repo can't tell a reader on its own, so they're
-where the marks are. The strongest moments are the ones where a correction
-landed in the **harness** rather than in another prompt --- a rule added to
-`CLAUDE.md`, a check wired up, an attempt thrown away: re-prompting until it
-passes is the routine case, and changing what the agent works against is the
-skilled one.
+**`formatDistance`'s unit thresholds were wrong, and the table-driven test is
+what caught it, not a read-through.** `149,600,000,000` m rendered as "149.6
+billion km" instead of "149.6 million km" — a divisor bug (`/1e9` should have
+been the million-km tier, `/1e12` the billion-km tier). Table-driven
+`it.each` cases across all four unit tiers caught every boundary at once
+rather than one manual example, and re-running them after the fix is what told
+me it was actually right, not just right for the one case I'd checked by eye —
+[`0d4187a`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/0d4187a).
 
-Cite each moment as a link whose text is the commit hash or range and whose
-target is this repo's commit or compare URL, so a reader clicks straight to the
-evidence:
-
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
-
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
-
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the verification better than a
-sentence does. Commit the file to this repo and link it with a **relative**
-path, which is what makes it render on GitHub: `![alt text](docs/before.png)`.
-Images don't count towards the word count and don't replace the citation.
-
-### A worked moment, for shape
-
-Delete this section along with the rest of the boilerplate --- it's here to show
-the four jobs in one paragraph, not to be imitated in content.
-
-> The date formatter kept coming back with `toLocaleDateString()` and no locale
-> argument, so the same build rendered differently on my machine and in CI. I'd
-> already re-prompted it twice, which fixed the line but not the habit, so the
-> third time I put the rule in `CLAUDE.md` instead
-> ([`3f9ac21`](https://github.com/YOUR-ORG/YOUR-REPO/commit/3f9ac21)) and added
-> a spec test that fails on a bare `toLocaleDateString`. That's what told me it
-> had actually taken: the test went red against the old code and green against
-> the new, and the next two features it wrote passed it without prompting
-> ([`3f9ac21...b7e0d14`](https://github.com/YOUR-ORG/YOUR-REPO/compare/3f9ac21...b7e0d14)).
-
-## Before you ship
-
-`pnpm check:evidence` verifies your citations resolve to real commits, that the
-current reflection entry is in `reflections/`, and that your `CLAUDE.md` is
-there --- before a marker ever opens the file. It checks that your map is
-traceable, not that it is good: the marker judges whether your small,
-deliberately chosen set of moments shows real judgement and reflection. A green
-check is not a substitute for that curation.
-
-Images are deliberately not checked, because whether one renders is visible the
-moment you look. Open this file on GitHub and look at it before you ship.
+**The HUD's `aria-live="polite"` looked correct and would have flooded screen
+readers.** It read as the obvious choice — announce the distance as it
+changes — until I traced through what "as it changes" means for a value
+updated every animation frame during a scroll: several announcements a
+second. The milestone content is already in the accessible document flow as
+ordinary headings and paragraphs in scroll order, so the HUD is a sighted-only
+convenience, not new information. I switched it to `aria-hidden="true"` and
+wrote the reasoning into `CLAUDE.md` so a future live-updating readout doesn't
+reach for `aria-live` on a per-frame value without a coarser update strategy —
+[`8ed6e33`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/8ed6e33).
