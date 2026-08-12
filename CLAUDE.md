@@ -202,6 +202,15 @@ both the external files and every parsed page's inline `<style>` tags —
 copy that pattern rather than re-deriving it if a future CSS-content test
 hits the same false negative.
 
+**The CI link check (`linkinator`) is CI-only — `pnpm check` doesn't run it —
+so a broken/blocked external link only surfaces after shipping, not during
+local iteration.** First `/ship` run 403'd on `noaa.gov` from the GitHub
+Actions runner's IP; the same URL returns 200 to a normal browser UA. That's
+bot-blocking on NOAA's end, not a dead citation, so `.github/workflows/checks.yml`
+treats 403 as `warn` rather than a failure (`--status-code "403:warn"`) —
+confirmed by hand first, since a blanket skip would also hide a genuinely
+dead link going forward.
+
 **The HUD is `aria-hidden`, not `aria-live`.** It first shipped as
 `aria-live="polite"`, which sounded right — announce the distance as it
 changes — until it was obvious that "as it changes" means every animation

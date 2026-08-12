@@ -42,7 +42,11 @@ jobs:
         if: ${{ !github.event.repository.is_template }}
         run: pnpm check:evidence
       - name: Check internal links
-        run: pnpm dlx linkinator ./dist --silent
+        # --status-code 403:warn: some cited sources (e.g. noaa.gov) 403 the
+        # runner's IP as bot traffic while returning 200 to a real browser --
+        # verified by hand before adding this, so it's a false positive to
+        # silence, not a real dead link to skip past.
+        run: pnpm dlx linkinator ./dist --silent --status-code "403:warn"
       - name: Scan for committed secrets
         # Pinned, both halves: the SHA fixes the action's script, and `version`
         # fixes the scanner image, which otherwise floats on :latest. These two
