@@ -14,6 +14,9 @@ export interface Milestone {
   fact: string;
   source: MilestoneSource;
   note?: string;
+  /** Alt text for this milestone's real photo — accessible content, not
+   * presentation, unlike the removed icon mapping it replaces. */
+  photoAlt: string;
 }
 
 const LAYERS: Array<{ upToM: number; name: string }> = [

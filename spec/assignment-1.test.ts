@@ -127,14 +127,21 @@ it("honours prefers-reduced-motion", () => {
 });
 
 describe("milestone illustrations", () => {
-  it("gives every milestone section an icon", () => {
+  it("gives every milestone section a real, described photo", () => {
     const milestones = [...home.querySelectorAll(".milestone")];
     expect(milestones.length).toBeGreaterThan(0);
     for (const section of milestones) {
+      const photo = section.querySelector<HTMLImageElement>("img.milestone__photo");
+      expect(photo, `expected ${section.id} to contain an <img class="milestone__photo">`).toBeTruthy();
       expect(
-        section.querySelector("svg"),
-        `expected ${section.id} to contain an <svg> illustration`,
-      ).toBeTruthy();
+        (photo?.getAttribute("alt")?.trim().length ?? 0) > 0,
+        `${section.id}'s photo needs a non-empty alt — it's documentary content, not decoration`,
+      ).toBe(true);
+      const src = photo?.getAttribute("src") ?? "";
+      expect(
+        src.startsWith("/") && !src.startsWith("//"),
+        `${section.id}'s photo src="${src}" is root-relative and will 404 under the GitHub Pages subpath — use a relative path instead`,
+      ).toBe(false);
     }
   });
 });

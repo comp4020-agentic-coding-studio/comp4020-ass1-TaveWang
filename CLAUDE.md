@@ -258,15 +258,49 @@ actually screenshotting both marking viewports after the change, not by
 `pnpm check` (no test asserts wrapping) — a reminder that a passing test
 suite and a correct-looking layout are different claims.
 
-**Illustrations live in their own component, keyed by milestone `id`, not
-a new field on `Milestone`.** `src/components/MilestoneIcon.astro` `switch`es
-on `id` and renders one small inline SVG per milestone. Keeping the mapping
-there rather than adding an `icon` field to `src/data/milestones.ts` keeps
-`Milestone` a pure data shape with no presentation coupling — same split as
-`src/lib/scale.ts` staying DOM-free. The icon is wrapped in
-`aria-hidden="true"` for the same reason the HUD readout is: it's a
-decorative flourish, and the heading/fact text already carry the real
-information in the accessible document flow.
+**Illustrations were later replaced with real photos, self-hosted, one per
+milestone — and that's the one place `Milestone` does carry a presentation
+field.** The SVG icons above were dropped entirely (not kept alongside) in
+favour of real NASA/JPL photographs, at the user's explicit request. All 12
+are U.S. federal government work (public domain, 17 U.S.C. § 105), each
+resolved to a concrete direct-download URL via `WebFetch` against its real
+`science.nasa.gov` / `nasa.gov` / `svs.gsfc.nasa.gov` landing page — never
+guessed from memory — then downloaded once and resized/recompressed locally
+with `sips -Z 1000 -s format jpeg -s formatOptions 65` (the only image tool
+available; no `cwebp`/imagemagick) into `public/images/milestones/<id>.jpg`,
+landing at roughly 30–200KB each rather than hotlinking. One candidate
+(Jupiter, originally Voyager 1's PIA00454) was rejected after visually
+inspecting the downloaded file: it was a 2×2 grid of four small rotation
+frames, not a single disk, which would have cropped badly under
+`object-fit: cover`. It was swapped for Cassini's single-frame "Jupiter
+Portrait" (PIA04866) instead — a reminder that a URL returning 200 with
+plausible dimensions doesn't guarantee the image is fit for its slot; open
+it and look.
+
+The "the higher you go, the more Earth's curve and then its shrinking disk
+show" narrative the user asked for is carried by **which photo** is chosen
+per milestone (ground horizon → ISS limb shot → full Earth-orbit shot → full
+planetary disks → Voyager's actual Pale Blue Dot), not by a fake blur filter
+simulating atmosphere — a documentary photo already looks different at each
+altitude/distance without needing to be lied to. The one animation added is
+a uniform scroll-reveal (blur → sharp, `scale(0.85)` → `scale(1)`, fade in)
+via a new standalone `src/scripts/photo-reveal.ts` — a small
+`IntersectionObserver` that adds `.is-visible` once each `.milestone__photo`
+crosses a 0.3 threshold, then unobserves. It's deliberately a separate
+script with no shared state with `src/scripts/hud.ts`, so it can't regress
+the tested distance/scrubber pipeline. The entire effect (including the
+initial `opacity: 0; filter: blur(10px)` starting state) lives inside
+`@media (prefers-reduced-motion: no-preference)`, not the sitewide
+zeroed-duration rule — under reduced motion, photos are simply visible at
+full quality immediately, with no blurred starting frame to mask.
+
+`photoAlt: string` is the one new field added to `Milestone`, and
+deliberately breaks the "no presentation field on Milestone" rule the old
+icon mapping followed. That rule was about not coupling data to a *visual
+component* (which icon to render); alt text isn't presentation, it's
+accessible content — a real documentary photo is something a screen-reader
+user should get described, unlike the old decorative SVGs, which is also why
+the `<img>` now carries a real `alt` instead of `aria-hidden="true"`.
 
 **The background is one continuous gradient on `body`, not per-category
 opaque blocks — and its percentage stops are a static guess, not

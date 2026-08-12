@@ -158,10 +158,32 @@ input:focus-visible {
   opacity: 0.8;
 }
 
-.milestone__icon {
-  display: inline-block;
-  width: clamp(3.5rem, 8vw, 5.5rem);
+.milestone__photo {
+  display: block;
+  width: clamp(14rem, 40vw, 22rem);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.5rem;
   margin-bottom: 1rem;
+}
+
+.milestone:nth-child(even) .milestone__photo {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .milestone__photo {
+    opacity: 0;
+    transform: scale(0.85);
+    filter: blur(10px);
+    transition: opacity 0.9s ease-out, transform 0.9s ease-out, filter 0.9s ease-out;
+  }
+
+  .milestone__photo.is-visible {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
 }
 
 .milestone[data-category="atmosphere"] {

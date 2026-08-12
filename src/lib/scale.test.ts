@@ -11,9 +11,9 @@ import {
 const SECTION_PX = 900;
 
 const MILESTONES: Milestone[] = [
-  { id: "a", name: "A", distanceM: 0, category: "atmosphere", fact: "", source: { name: "", url: "" } },
-  { id: "b", name: "B", distanceM: 100_000, category: "atmosphere", fact: "", source: { name: "", url: "" } },
-  { id: "c", name: "C", distanceM: 384_400_000, category: "orbit", fact: "", source: { name: "", url: "" } },
+  { id: "a", name: "A", distanceM: 0, category: "atmosphere", fact: "", source: { name: "", url: "" }, photoAlt: "" },
+  { id: "b", name: "B", distanceM: 100_000, category: "atmosphere", fact: "", source: { name: "", url: "" }, photoAlt: "" },
+  { id: "c", name: "C", distanceM: 384_400_000, category: "orbit", fact: "", source: { name: "", url: "" }, photoAlt: "" },
 ];
 
 // Real anchors come from measuring rendered section positions; a uniform

@@ -20,6 +20,8 @@ export const MILESTONES: Milestone[] = [
       name: "NOAA JetStream",
       url: "https://www.noaa.gov/jetstream/atmosphere",
     },
+    photoAlt:
+      "Sunrise over the Vehicle Assembly Building at Kennedy Space Center, Florida — the horizon at ground level.",
   },
   {
     id: "everest",
@@ -32,6 +34,7 @@ export const MILESTONES: Milestone[] = [
       url: "https://www.dailysabah.com/life/environment/growth-spurt-mount-everests-height-revised-to-8849-meters-china-and-nepal-announce",
     },
     note: "Measured to the snow surface — the point climbers actually stand on.",
+    photoAlt: "Mount Everest and the surrounding Himalayan peaks, photographed from the International Space Station.",
   },
   {
     id: "karman-line",
@@ -44,6 +47,8 @@ export const MILESTONES: Milestone[] = [
       url: "https://www.fai.org/news/statement-about-karman-line",
     },
     note: "Not universal: NASA and the US military use 80.5 km instead. The boundary is a convention, not a physical wall — and from here on, so is the scale of this page.",
+    photoAlt:
+      "Earth's curved limb at sunrise, seen edge-on from the International Space Station — the thin blue line of the atmosphere against the black of space.",
   },
   {
     id: "iss-orbit",
@@ -55,6 +60,7 @@ export const MILESTONES: Milestone[] = [
       name: "NASA",
       url: "https://www.nasa.gov/reference/international-space-station/",
     },
+    photoAlt: "The International Space Station, solar arrays extended, backdropped by Earth during a shuttle flyaround.",
   },
   {
     id: "moon",
@@ -67,6 +73,7 @@ export const MILESTONES: Milestone[] = [
       url: "https://spaceplace.nasa.gov/moon-distance/en/",
     },
     note: "The real distance varies by about 42,000 km across the Moon's elliptical orbit.",
+    photoAlt: "A full-disk photomosaic of the Moon, its near-side craters and maria visible in grayscale.",
   },
   {
     id: "sun",
@@ -79,6 +86,7 @@ export const MILESTONES: Milestone[] = [
       url: "https://www.jpl.nasa.gov/edu/pdfs/scaless_reference.pdf",
     },
     note: "Mercury and Venus orbit closer to the Sun than Earth does, so there's no clean 'further out' number for them on an outward journey. Left out here, not forgotten.",
+    photoAlt: "The Sun's full disk in extreme ultraviolet light, showing bright active regions across its surface.",
   },
   {
     id: "mars",
@@ -91,6 +99,7 @@ export const MILESTONES: Milestone[] = [
       url: "https://www.jpl.nasa.gov/edu/pdfs/scaless_reference.pdf",
     },
     note: "From here on, distances are mean distance from the Sun, not from Earth — Earth and each planet are both moving, so 'distance from Earth' stops being one fixed number.",
+    photoAlt: "Mars in true color, showing its rust-red surface and a bright polar ice cap.",
   },
   {
     id: "jupiter",
@@ -102,6 +111,7 @@ export const MILESTONES: Milestone[] = [
       name: "NASA/JPL Solar System reference",
       url: "https://www.jpl.nasa.gov/edu/pdfs/scaless_reference.pdf",
     },
+    photoAlt: "Jupiter's banded clouds and the Great Red Spot, photographed by the Cassini spacecraft during its 2000 flyby.",
   },
   {
     id: "saturn",
@@ -113,6 +123,7 @@ export const MILESTONES: Milestone[] = [
       name: "NASA/JPL Solar System reference",
       url: "https://www.jpl.nasa.gov/edu/pdfs/scaless_reference.pdf",
     },
+    photoAlt: "Saturn backlit by the Sun, its rings glowing against the darkness, from the Cassini mosaic \"The Day the Earth Smiled.\"",
   },
   {
     id: "uranus",
@@ -124,6 +135,7 @@ export const MILESTONES: Milestone[] = [
       name: "NASA/JPL Solar System reference",
       url: "https://www.jpl.nasa.gov/edu/pdfs/scaless_reference.pdf",
     },
+    photoAlt: "Uranus as a pale, featureless blue-green disk, photographed by Voyager 2 in 1986.",
   },
   {
     id: "neptune",
@@ -136,6 +148,7 @@ export const MILESTONES: Milestone[] = [
       url: "https://www.jpl.nasa.gov/edu/pdfs/scaless_reference.pdf",
     },
     note: "NASA/JPL's reference figures round Neptune's mean solar distance to about 4.5 billion km.",
+    photoAlt: "Neptune's deep blue disk, photographed by Voyager 2 in 1989.",
   },
   {
     id: "pale-blue-dot",
@@ -148,5 +161,7 @@ export const MILESTONES: Milestone[] = [
       url: "https://science.nasa.gov/resource/voyager-pale-blue-dot-download/",
     },
     note: "The furthest Voyager 1 ever looked back. It has since travelled much further outward without turning around again.",
+    photoAlt:
+      "The Pale Blue Dot: a grainy deep-space photograph in which Earth appears as a single tiny speck of light, caught in a scattered sunbeam.",
   },
 ];
