@@ -154,6 +154,67 @@ in `src/lib/store.ts` if useful as a reference, but nothing here is carried
 forward automatically --- build this again only if this week's design actually
 needs cross-island shared state.)
 
+## This week (UP): decisions worth carrying forward
+
+No React island this week — the only thing tracking live state is the HUD's
+scroll position, and nothing else needs to read it, so a plain
+`<script type="module">` (`src/scripts/hud.ts`) beats paying hydration cost
+for zero cross-component sharing. If a future week's brief needs two things
+to react to the same live value, that's when `useSyncExternalStore` earns
+its keep again, not before.
+
+**Distance mapping is driven by measured anchors, not assumed section
+height.** The first version of `distanceAtScroll` assumed every milestone
+sat at a uniform `i * sectionPx` — wrong the moment sections have different
+amounts of content (a note, a sourced fact, an air-composition list). Fixed
+by measuring each `.milestone`'s real `getBoundingClientRect().top +
+window.scrollY` from the live DOM (`src/scripts/hud.ts`) and interpolating
+between those measured anchors (`distanceAtPosition` in `src/lib/scale.ts`),
+re-measuring on `resize`. Don't reintroduce a fixed-height assumption here —
+it'll drift the instant the copy changes.
+
+**Never hijack scroll.** The HUD only reads `window.scrollY` on a passive,
+`requestAnimationFrame`-throttled `scroll` listener — nothing calls
+`preventDefault()` or intercepts the wheel/touch/keyboard. Keyboard
+operability (`PageUp`/`PageDown`/`Space`/`Home`/`End`/arrows) falls out of
+that for free, because it's the browser's own native scrolling, not a
+library reimplementing it. Keep it that way even if a future pass wants
+snappier per-section transitions.
+
+**Past the Moon, "distance from Earth" stops being a stable number** — Earth
+and every other planet both orbit the Sun, so there's no fixed "how far from
+Earth" for Mars onward. Mercury and Venus are omitted from the milestone
+sequence entirely (they orbit closer to the Sun than Earth does, so there's
+no outward-increasing number for them either), and Mars onward switches to
+mean distance from the Sun instead — disclosed via the `note` field on the
+milestones where the reframe happens, same as the log-scale-compression
+notice. If next week's data has a similar "the metric quietly changes
+meaning partway through" seam, disclose it the same way rather than picking
+a number that reads clean but means something different than the reader
+assumes.
+
+**Astro inlines small stylesheets into a `<style>` tag instead of always
+emitting `dist/_astro/*.css`.** A CSS-presence test that only reads
+`_astro/*.css` will pass or fail depending on how big the stylesheet
+happens to be that week, for reasons unrelated to whether the CSS rule
+actually exists. `spec/assignment-1.test.ts`'s `cssFiles()` helper reads
+both the external files and every parsed page's inline `<style>` tags —
+copy that pattern rather than re-deriving it if a future CSS-content test
+hits the same false negative.
+
+**The HUD is `aria-hidden`, not `aria-live`.** It first shipped as
+`aria-live="polite"`, which sounded right — announce the distance as it
+changes — until it was obvious that "as it changes" means every animation
+frame during a scroll, which would flood a screen reader with updates
+several times a second. The distance and milestone facts are already in the
+accessible document flow as ordinary headings and paragraphs, in the same
+order a sighted user scrolls through them, so the HUD is a sighted-only
+convenience layer, not new information — hiding it from assistive tech
+avoids the spam without losing any content. If a future live-updating
+readout is genuinely the only place some information lives, it needs a
+coarser update strategy (e.g. only announce on milestone-entry, not every
+frame), not a bare `aria-live="polite"` on a per-frame value.
+
 ## stylelint: what I configured and what I left alone
 
 `selector-class-pattern` rejects BEM out of the box. `.stylelintrc.json` widens
