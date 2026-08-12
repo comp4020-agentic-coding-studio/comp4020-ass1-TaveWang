@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import { MILESTONES } from "../data/milestones";
 import { formatDistance, layerForDistance } from "../lib/scale";
+import MilestoneIcon from "../components/MilestoneIcon.astro";
 
 const sources = [...new Map(MILESTONES.map((m) => [m.source.url, m.source])).values()];
 const first = MILESTONES[0];
@@ -53,6 +54,9 @@ const first = MILESTONES[0];
       {
         MILESTONES.map((milestone) => (
           <section class="milestone" id={milestone.id} data-category={milestone.category}>
+            <div class="milestone__icon" aria-hidden="true">
+              <MilestoneIcon id={milestone.id} />
+            </div>
             <h2>{milestone.name}</h2>
             <p class="milestone__distance">{formatDistance(milestone.distanceM)}</p>
             <p>{milestone.fact}</p>

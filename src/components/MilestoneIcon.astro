@@ -1,0 +1,149 @@
+---
+/*
+ * One small, hand-authored flat illustration per milestone, keyed by id.
+ * Kept out of src/data/milestones.ts on purpose: Milestone stays a pure
+ * data shape, and this component is the only place that knows how a
+ * milestone looks rather than what it means.
+ *
+ * Outlines use currentColor so every icon automatically follows its
+ * section's existing --{category}-fg text color; a handful of fills are
+ * hardcoded so the planets read as distinct and colorful rather than
+ * monochrome silhouettes.
+ */
+export interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+---
+
+{
+  id === "sea-level" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="3">
+      <line x1="5" y1="82" x2="95" y2="82" stroke-linecap="round" />
+      <circle cx="50" cy="60" r="6" fill="currentColor" stroke="none" />
+      <line x1="50" y1="66" x2="50" y2="82" />
+      <line x1="50" y1="72" x2="40" y2="82" />
+      <line x1="50" y1="72" x2="60" y2="82" />
+    </svg>
+  )
+}
+
+{
+  id === "everest" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <path d="M10,85 L50,15 L90,85 Z" fill="currentColor" opacity="0.18" stroke="currentColor" stroke-width="3" />
+      <path d="M50,15 L40,32 L60,32 Z" fill="#fff" stroke="currentColor" stroke-width="2" />
+    </svg>
+  )
+}
+
+{
+  id === "karman-line" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="3">
+      <path d="M8,55 Q50,20 92,55" stroke-dasharray="7 7" stroke-linecap="round" />
+    </svg>
+  )
+}
+
+{
+  id === "iss-orbit" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <ellipse cx="50" cy="55" rx="44" ry="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 5" opacity="0.5" />
+      <rect x="20" y="49" width="18" height="7" fill="currentColor" opacity="0.55" />
+      <rect x="62" y="49" width="18" height="7" fill="currentColor" opacity="0.55" />
+      <line x1="38" y1="52" x2="43" y2="52" stroke="currentColor" stroke-width="2" />
+      <line x1="57" y1="52" x2="62" y2="52" stroke="currentColor" stroke-width="2" />
+      <rect x="43" y="47" width="14" height="10" fill="var(--accent)" />
+    </svg>
+  )
+}
+
+{
+  id === "moon" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <path d="M60,18 A34,34 0 1 0 60,82 A24,24 0 1 1 60,18 Z" fill="currentColor" />
+    </svg>
+  )
+}
+
+{
+  id === "sun" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <circle cx="50" cy="50" r="18" fill="var(--accent)" />
+      <g stroke="var(--accent)" stroke-width="4" stroke-linecap="round">
+        <line x1="74" y1="50" x2="84" y2="50" />
+        <line x1="67" y1="67" x2="74" y2="74" />
+        <line x1="50" y1="74" x2="50" y2="84" />
+        <line x1="33" y1="67" x2="26" y2="74" />
+        <line x1="26" y1="50" x2="16" y2="50" />
+        <line x1="33" y1="33" x2="26" y2="26" />
+        <line x1="50" y1="26" x2="50" y2="16" />
+        <line x1="67" y1="33" x2="74" y2="26" />
+      </g>
+    </svg>
+  )
+}
+
+{
+  id === "mars" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <circle cx="50" cy="50" r="20" fill="#c1440e" />
+    </svg>
+  )
+}
+
+{
+  id === "jupiter" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <defs>
+        <clipPath id="jupiter-clip">
+          <circle cx="50" cy="50" r="28" />
+        </clipPath>
+      </defs>
+      <circle cx="50" cy="50" r="28" fill="#d9a066" />
+      <g clip-path="url(#jupiter-clip)">
+        <rect x="10" y="36" width="80" height="6" fill="#b5804a" opacity="0.7" />
+        <rect x="10" y="52" width="80" height="5" fill="#eac28c" opacity="0.6" />
+        <rect x="10" y="63" width="80" height="4" fill="#b5804a" opacity="0.5" />
+      </g>
+    </svg>
+  )
+}
+
+{
+  id === "saturn" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <ellipse cx="50" cy="50" rx="40" ry="9" fill="none" stroke="#c9a24b" stroke-width="4" transform="rotate(-15 50 50)" />
+      <circle cx="50" cy="50" r="22" fill="#e3c16f" />
+    </svg>
+  )
+}
+
+{
+  id === "uranus" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <ellipse cx="50" cy="50" rx="8" ry="32" fill="none" stroke="#7fc7cf" stroke-width="3" transform="rotate(10 50 50)" />
+      <circle cx="50" cy="50" r="20" fill="#a6e3e9" />
+    </svg>
+  )
+}
+
+{
+  id === "neptune" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <circle cx="50" cy="50" r="20" fill="#3457a6" />
+      <ellipse cx="42" cy="45" rx="6" ry="4" fill="#22406e" opacity="0.6" />
+    </svg>
+  )
+}
+
+{
+  id === "pale-blue-dot" && (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <rect width="100" height="100" fill="#050505" />
+      <rect x="0" y="35" width="100" height="30" fill="#8fa5c9" opacity="0.15" transform="rotate(-8 50 50)" />
+      <circle cx="63" cy="47" r="2" fill="#eaf0ff" />
+    </svg>
+  )
+}

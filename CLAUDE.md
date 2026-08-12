@@ -258,6 +258,32 @@ actually screenshotting both marking viewports after the change, not by
 `pnpm check` (no test asserts wrapping) — a reminder that a passing test
 suite and a correct-looking layout are different claims.
 
+**Illustrations live in their own component, keyed by milestone `id`, not
+a new field on `Milestone`.** `src/components/MilestoneIcon.astro` `switch`es
+on `id` and renders one small inline SVG per milestone. Keeping the mapping
+there rather than adding an `icon` field to `src/data/milestones.ts` keeps
+`Milestone` a pure data shape with no presentation coupling — same split as
+`src/lib/scale.ts` staying DOM-free. The icon is wrapped in
+`aria-hidden="true"` for the same reason the HUD readout is: it's a
+decorative flourish, and the heading/fact text already carry the real
+information in the accessible document flow.
+
+**The background is one continuous gradient on `body`, not per-category
+opaque blocks — and its percentage stops are a static guess, not
+scroll-synced.** `.milestone[data-category="..."]` and
+`.outro`/`[data-testid="sources"]` used to each set an opaque `background`,
+producing a hard color cut at every category boundary. Now only `color` is
+set per category, and `body` carries one `linear-gradient` spanning the
+full document height, with stops chosen proportionally to how many
+milestones fall in each category (intro + 3 atmosphere ≈ 0–25%, 2 orbit ≈
+25–41%, 6 solar-system ≈ 41–83%, interstellar tail ≈ 83–100%). This is
+deliberately approximate — no JS, no scroll-position math, zero risk to
+`src/scripts/hud.ts` — consistent with the page's own theme that scroll
+position and true distance already diverge without being hidden. If a
+future edit adds/removes milestones and shifts how many fall in each
+category, nudge these percentages by hand; nothing will fail loudly if they
+drift, since there's no test tying a gradient stop to a milestone count.
+
 ## stylelint: what I configured and what I left alone
 
 `selector-class-pattern` rejects BEM out of the box. `.stylelintrc.json` widens

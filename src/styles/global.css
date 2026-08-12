@@ -24,7 +24,22 @@ body {
   font-family: Georgia, "Iowan Old Style", serif;
   line-height: 1.6;
   color: var(--atmosphere-fg);
-  background: var(--atmosphere-bg);
+
+  /* One continuous gradient down the whole document, rather than hard
+     per-category cuts. Stops are a static estimate of where each
+     category's run of milestones falls (proportional to section count),
+     not scroll-synced — see CLAUDE.md before changing milestone counts. */
+  background: linear-gradient(
+    to bottom,
+    var(--atmosphere-bg) 0%,
+    var(--atmosphere-bg) 25%,
+    var(--orbit-bg) 28%,
+    var(--orbit-bg) 39%,
+    var(--solar-system-bg) 42%,
+    var(--solar-system-bg) 81%,
+    var(--interstellar-bg) 84%,
+    var(--interstellar-bg) 100%
+  );
 }
 
 main {
@@ -143,23 +158,25 @@ input:focus-visible {
   opacity: 0.8;
 }
 
+.milestone__icon {
+  display: inline-block;
+  width: clamp(3.5rem, 8vw, 5.5rem);
+  margin-bottom: 1rem;
+}
+
 .milestone[data-category="atmosphere"] {
-  background: var(--atmosphere-bg);
   color: var(--atmosphere-fg);
 }
 
 .milestone[data-category="orbit"] {
-  background: var(--orbit-bg);
   color: var(--orbit-fg);
 }
 
 .milestone[data-category="solar-system"] {
-  background: var(--solar-system-bg);
   color: var(--solar-system-fg);
 }
 
 .milestone[data-category="interstellar"] {
-  background: var(--interstellar-bg);
   color: var(--interstellar-fg);
 }
 
@@ -178,7 +195,6 @@ input:focus-visible {
 
 .outro,
 [data-testid="sources"] {
-  background: var(--interstellar-bg);
   color: var(--interstellar-fg);
   padding: 3rem 0;
 }

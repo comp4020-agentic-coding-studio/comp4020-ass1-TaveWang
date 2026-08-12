@@ -126,6 +126,19 @@ it("honours prefers-reduced-motion", () => {
   ).toBe(true);
 });
 
+describe("milestone illustrations", () => {
+  it("gives every milestone section an icon", () => {
+    const milestones = [...home.querySelectorAll(".milestone")];
+    expect(milestones.length).toBeGreaterThan(0);
+    for (const section of milestones) {
+      expect(
+        section.querySelector("svg"),
+        `expected ${section.id} to contain an <svg> illustration`,
+      ).toBeTruthy();
+    }
+  });
+});
+
 describe("GitHub Pages subpath safety", () => {
   it("never emits a root-relative href or src", () => {
     for (const { path, doc } of pages) {
