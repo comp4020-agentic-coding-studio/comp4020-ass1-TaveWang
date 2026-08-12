@@ -26,11 +26,20 @@ function htmlFiles(dir: string = DIST): string[] {
 }
 
 function cssFiles(): string {
+  // Astro inlines small stylesheets straight into a page's <style> tag
+  // instead of emitting a separate file under _astro/ — so both need
+  // checking, or this only holds by accident once the CSS grows past
+  // whatever size threshold triggers extraction.
   const dir = join(DIST, "_astro");
-  return readdirSync(dir)
+  const external = readdirSync(dir)
     .filter((f) => f.endsWith(".css"))
     .map((f) => readFileSync(join(dir, f), "utf8"))
     .join("\n");
+  const inline = pages
+    .flatMap(({ doc }) => [...doc.querySelectorAll("style")])
+    .map((style) => style.textContent ?? "")
+    .join("\n");
+  return `${external}\n${inline}`;
 }
 
 const pages = htmlFiles().map((path) => ({
