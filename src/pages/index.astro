@@ -59,34 +59,37 @@ const first = MILESTONES[0];
               alt={milestone.photoAlt}
               loading="lazy"
             />
-            <h2>{milestone.name}</h2>
-            <p class="milestone__distance">{formatDistance(milestone.distanceM)}</p>
-            <p>{milestone.fact}</p>
-            {milestone.note && <p class="milestone__note">{milestone.note}</p>}
-            {milestone.id === "sea-level" && (
-              <dl class="milestone__air">
-                <dt>Nitrogen</dt>
-                <dd>78.08%</dd>
-                <dt>Oxygen</dt>
-                <dd>20.95%</dd>
-                <dt>Argon</dt>
-                <dd>0.93%</dd>
-                <dt>Everything else (CO₂, etc.)</dt>
-                <dd>0.04%</dd>
-              </dl>
-            )}
-            <p class="milestone__source">
-              Source: <a href={milestone.source.url}>{milestone.source.name}</a>
-            </p>
-            {milestone.id === "karman-line" && (
-              <p class="notice" data-testid="scale-notice">
-                From here on, each screen you scroll represents far more real
-                distance than the one before it. That compression is
-                deliberate — it's the only way the atmosphere and the outer
-                Solar System fit on one page — and the number above is always
-                the true distance, however the page compresses it visually.
+            <div class="milestone__scrim" aria-hidden="true"></div>
+            <div class="milestone__content">
+              <h2>{milestone.name}</h2>
+              <p class="milestone__distance">{formatDistance(milestone.distanceM)}</p>
+              <p>{milestone.fact}</p>
+              {milestone.note && <p class="milestone__note">{milestone.note}</p>}
+              {milestone.id === "sea-level" && (
+                <dl class="milestone__air">
+                  <dt>Nitrogen</dt>
+                  <dd>78.08%</dd>
+                  <dt>Oxygen</dt>
+                  <dd>20.95%</dd>
+                  <dt>Argon</dt>
+                  <dd>0.93%</dd>
+                  <dt>Everything else (CO₂, etc.)</dt>
+                  <dd>0.04%</dd>
+                </dl>
+              )}
+              <p class="milestone__source">
+                Source: <a href={milestone.source.url}>{milestone.source.name}</a>
               </p>
-            )}
+              {milestone.id === "karman-line" && (
+                <p class="notice" data-testid="scale-notice">
+                  From here on, each screen you scroll represents far more real
+                  distance than the one before it. That compression is
+                  deliberate — it's the only way the atmosphere and the outer
+                  Solar System fit on one page — and the number above is always
+                  the true distance, however the page compresses it visually.
+                </p>
+              )}
+            </div>
           </section>
         ))
       }

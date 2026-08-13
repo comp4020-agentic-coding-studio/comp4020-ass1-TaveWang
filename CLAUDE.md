@@ -282,17 +282,43 @@ show" narrative the user asked for is carried by **which photo** is chosen
 per milestone (ground horizon → ISS limb shot → full Earth-orbit shot → full
 planetary disks → Voyager's actual Pale Blue Dot), not by a fake blur filter
 simulating atmosphere — a documentary photo already looks different at each
-altitude/distance without needing to be lied to. The one animation added is
-a uniform scroll-reveal (blur → sharp, `scale(0.85)` → `scale(1)`, fade in)
-via a new standalone `src/scripts/photo-reveal.ts` — a small
-`IntersectionObserver` that adds `.is-visible` once each `.milestone__photo`
-crosses a 0.3 threshold, then unobserves. It's deliberately a separate
-script with no shared state with `src/scripts/hud.ts`, so it can't regress
-the tested distance/scrubber pipeline. The entire effect (including the
-initial `opacity: 0; filter: blur(10px)` starting state) lives inside
-`@media (prefers-reduced-motion: no-preference)`, not the sitewide
-zeroed-duration rule — under reduced motion, photos are simply visible at
-full quality immediately, with no blurred starting frame to mask.
+altitude/distance without needing to be lied to.
+
+**Photos later moved from a small boxed image above the text to a
+full-bleed, edge-to-edge section background, with the fade made continuous
+and reversible instead of a one-shot reveal.** The user asked for this
+explicitly ("borderless", "the photo should be the background of each
+stage", fading as you scroll up *and* down, not just fading in once and
+staying). To go full-bleed, the 40rem reading-column constraint moved off
+`main` and onto the three non-milestone sections (`.intro`, `.outro`,
+`[data-testid="sources"]`) individually, so `.milestone` sections (still
+plain block children of `main`, still in normal flow — `hud.ts`'s
+`getBoundingClientRect()` anchor measurement is unaffected) can span the
+full viewport width with no `100vw`/negative-margin breakout hack, which
+would otherwise be thrown off by `main`'s own padding. Each milestone photo
+is now `position: absolute; inset: 0` inside a `position: relative`
+`.milestone`, with a fixed (non-animated) dark gradient `.milestone__scrim`
+on top of it for text contrast regardless of the photo's own brightness,
+and the text itself in a `.milestone__content` div that keeps the 40rem
+column and stacks above both via `z-index`. Because contrast is now
+guaranteed by the scrim rather than by a per-category foreground color, the
+four `.milestone[data-category="..."] { color: ... }` rules and the
+orbit/solar-system/interstellar link-color override were deleted — milestone
+text is uniformly light-on-scrim now.
+
+The reveal script (`src/scripts/photo-reveal.ts`) was rewritten from a
+one-shot `IntersectionObserver` (add `.is-visible`, `unobserve`, done
+forever) to a continuous, reversible, scroll-position-driven opacity: a
+passive, `requestAnimationFrame`-throttled `scroll` listener (same
+throttling pattern as `hud.ts`, but a fully separate listener with no shared
+state — still true after this rewrite) computes each section's distance
+from the viewport's vertical center on every frame and sets that photo's
+`opacity` proportionally, fading toward (never fully down to) a minimum as
+the section scrolls away in *either* direction. Under `prefers-reduced-motion:
+reduce` the script attaches no listener at all and never touches `opacity`,
+so photos render at their CSS default (fully opaque) with zero motion —
+deliberately not relying on the sitewide zeroed-transition-duration rule to
+mask a moving state, same reasoning as before.
 
 `photoAlt: string` is the one new field added to `Milestone`, and
 deliberately breaks the "no presentation field on Milestone" rule the old
@@ -317,6 +343,10 @@ position and true distance already diverge without being hidden. If a
 future edit adds/removes milestones and shifts how many fall in each
 category, nudge these percentages by hand; nothing will fail loudly if they
 drift, since there's no test tying a gradient stop to a milestone count.
+Since milestone sections went full-bleed with photo backgrounds (above),
+this gradient is mostly hidden behind those photos now — it still shows
+through in the `.intro`/`.outro`/sources gaps and briefly during each
+photo's low-opacity moments as a section scrolls away from center.
 
 ## stylelint: what I configured and what I left alone
 
