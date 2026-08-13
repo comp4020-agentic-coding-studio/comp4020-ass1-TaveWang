@@ -82,7 +82,30 @@ export interface CosmicObject {
   /** Bearing in degrees, chosen to keep labels apart. Never measured. */
   angleDeg: number;
   visualStyleKey: string;
+  photo?: Photo;
 }
+
+export interface Photo {
+  /** Filename under public/images/objects/. Referenced relatively at use. */
+  file: string;
+  /** Describes the photograph. Real content, not decoration. */
+  alt: string;
+  /** Credit line exactly as the hosting page states it. */
+  credit: string;
+  /** The page the image was taken from, and the date it was taken. */
+  url: string;
+  accessed: string;
+  /**
+   * Fraction of the image's width occupied by the body's own disc. The Sun is
+   * drawn to scale, so its photo has to be scaled so that the PHOTOSPHERE
+   * lands on the computed radius — not the image frame, which includes corona
+   * and black margin. Getting this wrong would understate the Sun's size while
+   * looking perfectly plausible.
+   */
+  discFraction: number;
+}
+
+const NASA_PHOTO_ACCESSED = "2026-08-13";
 
 const JPL_ELEMENTS: Source = {
   name: "NASA JPL — Approximate Positions of the Planets",
@@ -185,6 +208,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 1,
     angleDeg: 0,
     visualStyleKey: "sun",
+    photo: {
+      file: "sun.jpg",
+      alt: "The Sun's disc in extreme ultraviolet light, its surface a mottled orange tangle of magnetic loops, with the corona flaring beyond the limb.",
+      credit: "NASA/SDO",
+      url: "https://science.nasa.gov/sun/",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.8,
+    },
     shortDescription:
       "One ordinary star, about 700,000 km in radius. Everything else on this page is measured outward from here.",
     source: NASA_SUN,
@@ -203,6 +234,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 24,
     visualStyleKey: "rocky",
+    photo: {
+      file: "mercury.jpg",
+      alt: "Mercury as a complete grey globe, its surface saturated with overlapping impact craters.",
+      credit: "NASA/Johns Hopkins University Applied Physics Laboratory/Carnegie Institution of Washington",
+      url: "https://science.nasa.gov/mercury/",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.94,
+    },
     shortDescription: "Semi-major axis 0.387 AU. The innermost planet, and the first thing to collapse into the Sun's glare as you pull back.",
     source: JPL_ELEMENTS,
     uncertaintyNote:
@@ -220,6 +259,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 108,
     visualStyleKey: "rocky",
+    photo: {
+      file: "venus.jpg",
+      alt: "Venus as a full globe in false-colour radar, its cloud-hidden surface rendered in gold and rust.",
+      credit: "NASA/JPL-Caltech",
+      url: "https://science.nasa.gov/venus/",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.62,
+    },
     shortDescription: "Semi-major axis 0.723 AU. Almost Earth's twin in size — 6,052 km in radius against Earth's 6,371 km.",
     source: JPL_ELEMENTS,
     positionIsDiagrammatic: true,
@@ -235,6 +282,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 2,
     angleDeg: 192,
     visualStyleKey: "earth",
+    photo: {
+      file: "earth.jpg",
+      alt: "Earth as a full blue and white sphere, Africa and Antarctica visible under swirls of cloud — the Apollo 17 \u201cBlue Marble\u201d.",
+      credit: "NASA",
+      url: "https://images.nasa.gov/details/as17-148-22727",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.92,
+    },
     shortDescription: "One astronomical unit, by definition the yardstick for everything inside the Solar System. Light takes eight minutes to get here.",
     source: JPL_ELEMENTS,
     uncertaintyNote:
@@ -252,6 +307,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 300,
     visualStyleKey: "rocky",
+    photo: {
+      file: "mars.jpg",
+      alt: "Mars as a complete rust-orange globe, the Valles Marineris canyon system cutting across its middle and a white polar cap at the top.",
+      credit: "NASA/JPL-Caltech/USGS",
+      url: "https://images.nasa.gov/details/PIA00407",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.98,
+    },
     shortDescription: "Semi-major axis 1.524 AU. The outer edge of the rocky planets, and the last world within easy reach of a spacecraft.",
     source: JPL_ELEMENTS,
     positionIsDiagrammatic: true,
@@ -267,6 +330,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 60,
     visualStyleKey: "gas",
+    photo: {
+      file: "jupiter.jpg",
+      alt: "Jupiter as a full banded disc in cream and orange, the Great Red Spot below and left of centre.",
+      credit: "NASA/JPL",
+      url: "https://science.nasa.gov/jupiter/",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.96,
+    },
     shortDescription: "Semi-major axis 5.20 AU, radius 69,911 km — eleven Earths across, and still a tenth the width of the Sun.",
     source: JPL_ELEMENTS,
     positionIsDiagrammatic: true,
@@ -282,6 +353,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 150,
     visualStyleKey: "gas",
+    photo: {
+      file: "saturn.jpg",
+      alt: "Saturn in natural colour, its pale gold globe encircled by the ring system seen at a shallow angle.",
+      credit: "NASA/JPL/Space Science Institute",
+      url: "https://science.nasa.gov/saturn/",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.3,
+    },
     shortDescription: "Semi-major axis 9.54 AU. Nearly ten times Earth's distance from the Sun; sunlight arrives here about eighty minutes old.",
     source: JPL_ELEMENTS,
     positionIsDiagrammatic: true,
@@ -297,6 +376,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 246,
     visualStyleKey: "ice",
+    photo: {
+      file: "uranus.jpg",
+      alt: "Uranus as an almost featureless pale cyan sphere.",
+      credit: "NASA/JPL-Caltech",
+      url: "https://science.nasa.gov/uranus/",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.86,
+    },
     shortDescription: "Semi-major axis 19.19 AU. Twice as far out as Saturn — the spacing between the outer planets grows as fast as the planets themselves shrink.",
     source: JPL_ELEMENTS,
     positionIsDiagrammatic: true,
@@ -312,6 +399,14 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 336,
     visualStyleKey: "ice",
+    photo: {
+      file: "neptune.jpg",
+      alt: "Neptune as a deep blue globe, a dark storm and thin white cloud streaks visible across it.",
+      credit: "NASA/JPL",
+      url: "https://science.nasa.gov/neptune/",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.6,
+    },
     shortDescription: "Semi-major axis 30.07 AU — 4.5 billion km. The outermost planet, and the last object here whose position anyone would call settled.",
     source: JPL_ELEMENTS,
     positionIsDiagrammatic: true,
@@ -700,7 +795,10 @@ export function objectById(id: string): CosmicObject | undefined {
 export function allSources(): Source[] {
   const seen = new Map<string, Source>();
   for (const object of OBJECTS) {
-    for (const source of [object.source, object.radiusSource]) {
+    const photoSource: Source | undefined = object.photo
+      ? { name: `${object.photo.credit} — photograph of ${object.name}`, url: object.photo.url, accessed: object.photo.accessed }
+      : undefined;
+    for (const source of [object.source, object.radiusSource, photoSource]) {
       if (source && !seen.has(source.url)) seen.set(source.url, source);
     }
   }

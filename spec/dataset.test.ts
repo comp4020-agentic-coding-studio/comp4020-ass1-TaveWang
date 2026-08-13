@@ -79,6 +79,36 @@ describe("dataset integrity", () => {
     }
   });
 
+  it("cites and describes every photograph it shows", () => {
+    for (const object of OBJECTS) {
+      if (!object.photo) continue;
+      const photo = object.photo;
+      expect(photo.file, `${object.id} photo file`).toMatch(/^[a-z0-9-]+\.jpg$/);
+      expect(
+        photo.alt.trim().length,
+        `${object.id}'s photograph needs real alt text — it is documentary content, not decoration`,
+      ).toBeGreaterThan(20);
+      expect(
+        photo.credit.trim().length,
+        `${object.id}'s photograph needs the credit line exactly as its host states it`,
+      ).toBeGreaterThan(2);
+      expect(photo.url.startsWith("https://"), `${object.id} photo source`).toBe(true);
+      expect(/^\d{4}-\d{2}-\d{2}$/.test(photo.accessed), `${object.id} photo access date`).toBe(true);
+      // discFraction scales the image so the BODY lands on its computed size.
+      // A default of 1 would silently understate anything photographed with
+      // margin around it, which is most things.
+      expect(photo.discFraction, `${object.id} discFraction`).toBeGreaterThan(0.2);
+      expect(photo.discFraction).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("photographs the Sun, the one object ever drawn to scale", () => {
+    expect(
+      objectById("sun")?.photo,
+      "the Sun is the only body whose true angular size ever exceeds the minimum marker, so it is the only one whose photograph can go on the map honestly",
+    ).toBeDefined();
+  });
+
   it("admits uncertainty wherever a boundary is a convention or an inference", () => {
     // Regions, structures and horizons are the objects with no crisp edge —
     // the Oort Cloud has never been observed at all. Any of these that ships

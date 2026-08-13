@@ -148,7 +148,9 @@ summary:focus-visible,
 }
 
 .label__button {
-  display: block;
+  display: flex;
+  gap: 5px;
+  align-items: center;
   padding: 2px 5px;
   border: 0;
   border-left: 1px solid rgb(255 255 255 / 28%);
@@ -158,6 +160,23 @@ summary:focus-visible,
   text-align: left;
   cursor: pointer;
   pointer-events: auto;
+}
+
+/* A real NASA photograph beside the name. Deliberately small and clearly part
+   of the label rather than of the map: the marker on the canvas stays a dot,
+   because a photo drawn at the object's position would read as a claim about
+   its size. */
+.label__thumb {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #000;
+}
+
+.label__text {
+  min-width: 0;
 }
 
 .label__name {
@@ -192,6 +211,7 @@ summary:focus-visible,
 /* Labels flip to the other side of their object when the first position is
    taken, so the tick mark has to move with them. */
 .label--left .label__button {
+  flex-direction: row-reverse;
   border-right: 1px solid rgb(255 255 255 / 28%);
   border-left: 0;
   text-align: right;
@@ -406,6 +426,28 @@ summary:focus-visible,
   cursor: pointer;
 }
 
+.panel__figure {
+  margin: 0.9rem 0 0;
+}
+
+.panel__photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 13rem;
+  margin-inline: auto;
+  border-radius: 50%;
+  background: #000;
+}
+
+.panel__credit {
+  margin-top: 0.45rem;
+  color: var(--faint);
+  font-family: system-ui, sans-serif;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
 .panel__facts {
   margin: 0.9rem 0 0;
   font-family: system-ui, sans-serif;
@@ -539,6 +581,11 @@ summary:focus-visible,
 
   .label__type {
     display: none;
+  }
+
+  .label__thumb {
+    width: 18px;
+    height: 18px;
   }
 }
 

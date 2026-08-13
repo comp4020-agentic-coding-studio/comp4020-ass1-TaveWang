@@ -202,7 +202,7 @@ export function layout(
       // "you are here" crosshair.
       entry.y =
         sunRadiusPx > 40
-          ? cy - sunRadiusPx - 6
+          ? cy - sunRadiusPx - 13
           : cy + Math.max(sunRadiusPx, MIN_MARKER_PX * 3) + 6;
     }
 

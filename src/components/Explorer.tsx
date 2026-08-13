@@ -104,6 +104,12 @@ export default function Explorer() {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const levelRef = useRef(levelAt(MIN_LOG_R).id);
   const reduceMotionRef = useRef(false);
+  // The Sun is the only object ever drawn at its true angular size, so it is
+  // the only one whose photograph goes on the canvas. Everything else is a
+  // marker, and a marker textured with a photo would read as a claim about
+  // size that this page spends its time denying.
+  const sunPhotoRef = useRef<HTMLImageElement | null>(null);
+  const [sunPhotoLoaded, setSunPhotoLoaded] = useState(false);
 
   const maxLabels = size.width < 600 ? 5 : 12;
   const view = layout(logR, size.width, size.height, maxLabels);
@@ -151,6 +157,19 @@ export default function Explorer() {
 
   useEffect(() => {
     reduceMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+
+  useEffect(() => {
+    const photo = objectById("sun")?.photo;
+    if (!photo) return;
+    const image = new Image();
+    image.decoding = "async";
+    // Relative, never root-relative: this has to resolve under the Pages subpath.
+    image.src = `./images/objects/${photo.file}`;
+    image.onload = () => {
+      sunPhotoRef.current = image;
+      setSunPhotoLoaded(true);
+    };
   }, []);
 
   useEffect(() => {
@@ -380,12 +399,33 @@ export default function Explorer() {
       context.beginPath();
       context.arc(cx, cy, view.sunRadiusPx * 2.2, 0, Math.PI * 2);
       context.fill();
-      context.fillStyle = "#ffd489";
-      context.beginPath();
-      context.arc(cx, cy, view.sunRadiusPx, 0, Math.PI * 2);
-      context.fill();
+      const photo = sunPhotoRef.current;
+      const discFraction = objectById("sun")?.photo?.discFraction ?? 1;
+      if (photo) {
+        // Scale so the PHOTOSPHERE matches the computed radius — the image
+        // frame also contains corona and black margin, and drawing the frame
+        // to that radius would understate the Sun while looking plausible.
+        const drawn = (view.sunRadiusPx * 2) / discFraction;
+        context.save();
+        context.beginPath();
+        // Clipped exactly at the photosphere. Clipping wider to let the corona
+        // show also pulled in the source image's black margin, which rendered
+        // as a hard dark ring around the Sun; the warm gradient drawn behind
+        // does that job without the seam.
+        context.arc(cx, cy, view.sunRadiusPx, 0, Math.PI * 2);
+        context.clip();
+        context.drawImage(photo, cx - drawn / 2, cy - drawn / 2, drawn, drawn);
+        context.restore();
+      } else {
+        // Until the photograph loads, a flat disc of the right size. The page
+        // is never wrong about the Sun's scale, only about its texture.
+        context.fillStyle = "#ffd489";
+        context.beginPath();
+        context.arc(cx, cy, view.sunRadiusPx, 0, Math.PI * 2);
+        context.fill();
+      }
     }
-  }, [logR, size, view, selectedId]);
+  }, [logR, size, view, selectedId, sunPhotoLoaded]);
 
   /* --- scale bar -------------------------------------------------------- */
   const barPx = size.width < 600 ? 90 : 130;
@@ -423,16 +463,28 @@ export default function Explorer() {
                 aria-pressed={item.object.id === selectedId}
                 onClick={(event) => select(item.object.id, event.currentTarget)}
               >
-                <span className="label__name">{item.object.name}</span>
-                <span
-                  className="label__type"
-                  data-testid={
-                    item.object.id === "sun" && view.sunIsMarker ? "you-are-here" : undefined
-                  }
-                >
-                  {item.object.id === "sun" && view.sunIsMarker
-                    ? "You are here"
-                    : (CATEGORY_LABEL[item.object.category] ?? item.object.category)}
+                {item.object.photo && (
+                  <img
+                    className="label__thumb"
+                    src={`./images/objects/${item.object.photo.file}`}
+                    alt=""
+                    width="24"
+                    height="24"
+                    loading="lazy"
+                  />
+                )}
+                <span className="label__text">
+                  <span className="label__name">{item.object.name}</span>
+                  <span
+                    className="label__type"
+                    data-testid={
+                      item.object.id === "sun" && view.sunIsMarker ? "you-are-here" : undefined
+                    }
+                  >
+                    {item.object.id === "sun" && view.sunIsMarker
+                      ? "You are here"
+                      : (CATEGORY_LABEL[item.object.category] ?? item.object.category)}
+                  </span>
                 </span>
               </button>
             </li>
@@ -555,6 +607,24 @@ export default function Explorer() {
             </button>
           </div>
 
+          {selected.photo && (
+            <figure className="panel__figure">
+              <img
+                className="panel__photo"
+                src={`./images/objects/${selected.photo.file}`}
+                alt={selected.photo.alt}
+                width="480"
+                height="480"
+                loading="lazy"
+              />
+              <figcaption className="panel__credit">
+                {selected.photo.credit} ·{" "}
+                <a href={selected.photo.url}>source</a>{" "}
+                <span className="panel__accessed">(read {selected.photo.accessed})</span>
+              </figcaption>
+            </figure>
+          )}
+
           <dl className="panel__facts">
             <dt>Distance from the Sun</dt>
             <dd>
@@ -610,6 +680,17 @@ export default function Explorer() {
           pixels is drawn as a marker of fixed size, so a dot's size never
           means anything physical. The Sun becomes a “you are here” marker at
           the point where drawing it to scale would make it invisible.
+        </p>
+        <p>
+          Every named body here has a real NASA photograph, but only the Sun's
+          is drawn on the map. It is the one object whose true angular size ever
+          exceeds a few pixels, and its photograph is scaled so the photosphere
+          lands exactly on the computed radius. Every planet stays smaller than
+          a single pixel at every scale this page reaches — Earth never exceeds
+          a fiftieth of one — so a photograph placed at a planet's position
+          would be a claim about its size, and a false one. Those photographs
+          live in the labels and in each object's details instead, where they
+          can show what a world looks like without implying how big it is.
         </p>
         <p>
           This is a distance model, not a sky map. Radial order and distance

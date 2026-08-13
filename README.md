@@ -68,6 +68,27 @@ out loud, in the **Method & scale** disclosure and in each object's details:
 - **Faint background stars are illustrative texture** and are never labelled.
   Every named object is sourced.
 
+## Photographs
+
+Nine real NASA photographs — the Sun and all eight planets — each cropped to a
+square and stored under `public/images/objects/` (272 KB for the set). They
+appear in three places, and deliberately not in a fourth:
+
+- **On the map, the Sun only.** It is the one object whose true angular size
+  ever exceeds a few pixels, so it is the only one that can carry a photograph
+  honestly. Its image is scaled so the *photosphere* lands exactly on the
+  computed radius — the frame also contains corona and black margin, and
+  drawing the frame to that radius would understate the Sun while looking
+  perfectly plausible.
+- **In every label**, as a 24 px circular thumbnail beside the name.
+- **In every details panel**, at a readable size with its credit and the date
+  it was read.
+
+Planets are never drawn to scale anywhere in the zoom range — Earth's true
+radius never exceeds a fiftieth of a pixel — so a photograph placed at a
+planet's position on the map would be a claim about its size, and a false one.
+The markers stay dots, and the **Method & scale** disclosure says why.
+
 ## Data
 
 28 curated objects in `src/data/cosmos.ts`. Every figure was read off a page

@@ -166,6 +166,36 @@ describe("essential content lives outside the canvas", () => {
   });
 });
 
+describe("photographs", () => {
+  it("ships the Sun's photograph in the built page, on a relative path", () => {
+    const thumb = home.querySelector<HTMLImageElement>(".label__thumb");
+    expect(thumb, "the opening label should carry a real photograph").toBeTruthy();
+    const src = thumb?.getAttribute("src") ?? "";
+    expect(src).toMatch(/^\.\/images\/objects\/sun\.jpg$/);
+    expect(
+      thumb?.hasAttribute("alt"),
+      "a thumbnail beside a name that already says what it is, is decorative — but alt must still be present",
+    ).toBe(true);
+  });
+
+  it("keeps every photograph on a relative path", () => {
+    for (const image of home.querySelectorAll("img")) {
+      const src = image.getAttribute("src") ?? "";
+      expect(
+        src.startsWith("/") && !src.startsWith("//"),
+        `<img src="${src}"> is root-relative and will 404 under the Pages subpath`,
+      ).toBe(false);
+    }
+  });
+
+  it("credits every photograph it can show, in the sources region", () => {
+    const sources = home.querySelector('[data-testid="sources"]')?.textContent ?? "";
+    for (const credit of ["NASA/SDO", "NASA/JPL", "Carnegie Institution of Washington"]) {
+      expect(sources, `photo credit "${credit}" missing from the sources region`).toContain(credit);
+    }
+  });
+});
+
 describe("honesty about the model", () => {
   it("discloses the logarithmic compression", () => {
     const method = home.querySelector(".method")?.textContent ?? "";
@@ -179,6 +209,14 @@ describe("honesty about the model", () => {
       method,
       "minimum-size markers must never be allowed to read as physical sizes",
     ).toMatch(/never means anything physical|means nothing physical/i);
+  });
+
+  it("explains why the photographs are in the labels and not on the map", () => {
+    const method = home.querySelector(".method")?.textContent ?? "";
+    expect(
+      method,
+      "a photograph placed at an object's position would read as a claim about its size — the page has to say why they are in the labels instead",
+    ).toMatch(/photograph/i);
   });
 
   it("says the bearings are diagrammatic and the map is not a sky map", () => {

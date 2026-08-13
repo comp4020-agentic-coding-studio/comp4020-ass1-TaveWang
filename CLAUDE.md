@@ -241,6 +241,30 @@ the labels, the slider and the panel. In separate roots that would need a
 module store (see below); in one root it is plain `useState`. Reach for the
 store only when something genuinely cannot be one root.
 
+**A photograph can only go where the geometry can carry it.** The user asked
+for real planet images. Only the Sun is ever drawn at its true angular size —
+every planet stays under a pixel at every scale this page reaches, Earth never
+exceeding a fiftieth of one — so a photo textured onto a planet's marker would
+have been a size claim of about a thousand times, on a page whose whole subject
+is not doing that. The Sun's photograph goes on the canvas, scaled so the
+*photosphere* (not the image frame, which includes corona and black margin)
+lands on the computed radius; every other photo lives in the label and the
+details panel, where it says what a world looks like without saying how big it
+is. If a future change wants imagery somewhere new, check what the arithmetic
+says the object's size actually is first.
+
+**An image fit for one slot is not fit for another — open it and look.** Six
+photographs were recovered from the previous prototype's tag. Two were
+unusable: Saturn was Cassini's backlit silhouette and Jupiter was a crescent
+clipped by the frame edge. Both were perfect as full-bleed backgrounds and
+useless as circular thumbnails. The old CLAUDE.md already carried "a URL
+returning 200 with plausible dimensions doesn't guarantee the image is fit for
+its slot"; this is the same rule firing when the *slot* changed rather than the
+image. Two more, Mars and the Sun, were re-sourced rather than reused because
+their original landing pages were never recorded — and citing a recovered file
+to a page that does not host it is the same false-citation mistake as the JPL
+radius tables above.
+
 **Essential content never lives only in the canvas.** The canvas is
 `aria-hidden` decoration. Every label is a real focusable `<button>`, and the
 whole journey also ships as an ordered list of text. This is the deliberate
