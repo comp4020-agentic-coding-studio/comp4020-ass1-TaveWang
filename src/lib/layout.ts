@@ -87,6 +87,14 @@ function radians(degrees: number): number {
 }
 
 /**
+ * Structures and the horizon are set uppercase and letterspaced, which makes
+ * them far wider than a plain character count predicts — "THE OBSERVABLE
+ * UNIVERSE" ran straight through the Sun's label while the collision pass
+ * believed the two were clear of each other.
+ */
+const WIDE_FACTOR = 1.45;
+
+/**
  * Rough text box for a label, used only for collision avoidance. Estimated
  * from character count rather than measured: measuring would mean a layout
  * read per label per frame, and this only has to be close enough to keep two
@@ -99,8 +107,9 @@ function labelBox(
   charWidth: number,
   side: LabelSide,
   gap: number,
+  wide: boolean,
 ) {
-  const w = name.length * charWidth + 16 + gap;
+  const w = name.length * charWidth * (wide ? WIDE_FACTOR : 1) + 16 + gap;
   const h = 22 + gap;
   const left = side === "right" ? x : x - w;
   return { left, right: left + w, top: y - h / 2, bottom: y + h / 2 };
@@ -116,6 +125,11 @@ function labelGap(width: number): number {
   return width < 600 ? 14 : 0;
 }
 
+/** True for the label styles that are set uppercase and letterspaced. */
+function isWide(entry: Placed): boolean {
+  return entry.object.category === "structure" || entry.object.category === "horizon";
+}
+
 /** The screen box a placed label actually occupies. */
 export function labelBounds(entry: Placed, width: number) {
   return labelBox(
@@ -125,6 +139,7 @@ export function labelBounds(entry: Placed, width: number) {
     width < 600 ? 6 : 7,
     entry.labelSide,
     labelGap(width),
+    isWide(entry),
   );
 }
 
@@ -179,6 +194,17 @@ export function layout(
     const y = cy + Math.sin(angle) * fraction * unit;
 
     const entry: Placed = { object, fraction, x, y, labelX: x, labelY: y, labelSide: "right" };
+
+    if (object.id === "sun") {
+      // Never on top of the Sun itself. Above the disc while it is large,
+      // because below it is where the opening instruction sits; below the
+      // marker once the Sun is small, so it reads as a caption on the
+      // "you are here" crosshair.
+      entry.y =
+        sunRadiusPx > 40
+          ? cy - sunRadiusPx - 6
+          : cy + Math.max(sunRadiusPx, MIN_MARKER_PX * 3) + 6;
+    }
 
     if (object.ring) entry.ringRadiusPx = fraction * unit;
 
@@ -235,7 +261,15 @@ export function layout(
     for (const placement of PLACEMENTS) {
       const x = entry.x + placement.dx;
       const y = entry.y + placement.dy;
-      const box = labelBox(entry.object.name, x, y, charWidth, placement.side, gap);
+      const box = labelBox(
+        entry.object.name,
+        x,
+        y,
+        charWidth,
+        placement.side,
+        gap,
+        isWide(entry),
+      );
       if (box.left < 4 || box.right > width - 4 || box.top < 4 || box.bottom > height - 4) {
         continue;
       }

@@ -310,8 +310,8 @@ export default function Explorer() {
       const { cx: sx, cy: sy, r } = item.structure;
       const colour = FILL[item.object.visualStyleKey] ?? "#8fa2d6";
       const gradient = context.createRadialGradient(sx, sy, 0, sx, sy, Math.max(r, 1));
-      gradient.addColorStop(0, `${colour}38`);
-      gradient.addColorStop(0.75, `${colour}16`);
+      gradient.addColorStop(0, `${colour}4a`);
+      gradient.addColorStop(0.75, `${colour}1e`);
       gradient.addColorStop(1, `${colour}00`);
       context.fillStyle = gradient;
       context.beginPath();
@@ -424,19 +424,20 @@ export default function Explorer() {
                 onClick={(event) => select(item.object.id, event.currentTarget)}
               >
                 <span className="label__name">{item.object.name}</span>
-                <span className="label__type">
-                  {CATEGORY_LABEL[item.object.category] ?? item.object.category}
+                <span
+                  className="label__type"
+                  data-testid={
+                    item.object.id === "sun" && view.sunIsMarker ? "you-are-here" : undefined
+                  }
+                >
+                  {item.object.id === "sun" && view.sunIsMarker
+                    ? "You are here"
+                    : (CATEGORY_LABEL[item.object.category] ?? item.object.category)}
                 </span>
               </button>
             </li>
           ))}
         </ul>
-
-        {view.sunIsMarker && (
-          <p className="explorer__here" aria-hidden="true">
-            You are here
-          </p>
-        )}
 
         {!hasZoomed && (
           <p className="explorer__hint">

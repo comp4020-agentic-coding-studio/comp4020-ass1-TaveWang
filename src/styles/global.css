@@ -111,8 +111,13 @@ summary:focus-visible,
 /* --- the model ----------------------------------------------------------- */
 
 .explorer__stage {
+  /* Constrained rather than full-bleed: the visible radius is half the SHORT
+     side, so on a 1920px-wide band the circle it names occupied a third of the
+     stage and the rest was dead black. A plate the model actually fills makes
+     the readout legible as a claim about what you can see. */
   position: relative;
-  width: 100%;
+  width: min(100%, 54rem);
+  margin-inline: auto;
   height: clamp(320px, 62vh, 720px);
   overflow: hidden;
   border-block: 1px solid var(--line);
@@ -165,6 +170,7 @@ summary:focus-visible,
 .label__type {
   display: block;
   color: var(--faint);
+  white-space: nowrap;
   font-size: 0.6rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -174,6 +180,13 @@ summary:focus-visible,
 .label__button[aria-pressed="true"] {
   border-left-color: var(--accent);
   background: rgb(15 18 26 / 92%);
+}
+
+/* Past the scale where the Sun can be drawn to scale, its label's subtitle
+   becomes the "you are here" marker rather than a second floating caption
+   that collided with it. */
+.label__type[data-testid="you-are-here"] {
+  color: var(--accent);
 }
 
 /* Labels flip to the other side of their object when the first position is
@@ -195,19 +208,6 @@ summary:focus-visible,
 .label--structure .label__name {
   letter-spacing: 0.14em;
   text-transform: uppercase;
-}
-
-.explorer__here {
-  position: absolute;
-  top: calc(50% + 14px);
-  left: 50%;
-  margin: 0;
-  color: var(--accent);
-  font-family: system-ui, sans-serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  transform: translateX(-50%);
 }
 
 .explorer__hint {

@@ -129,7 +129,7 @@ describe("the opening view", () => {
 
   it("draws the Sun as a body, not as a location marker", () => {
     const { container } = setup();
-    expect(container.querySelector(".explorer__here")).toBeNull();
+    expect(container.querySelector("[data-testid='you-are-here']")).toBeNull();
   });
 
   it("drops the instruction once the visitor has zoomed", async () => {
@@ -158,11 +158,15 @@ describe("zooming out", () => {
   it("turns the Sun into a location marker once it is too small to draw honestly", async () => {
     const { container, zoomOut } = setup();
     await zoomOut(8);
-    const marker = container.querySelector(".explorer__here");
+    const marker = container.querySelector("[data-testid='you-are-here']");
     expect(
       marker?.textContent,
       "past a certain scale the Sun cannot be drawn to scale; it must become a marker rather than a falsely enlarged disc",
     ).toBe("You are here");
+    expect(
+      marker?.closest(".label")?.querySelector(".label__name")?.textContent,
+      "the marker is the Sun's own label, not a second caption floating over it",
+    ).toBe("The Sun");
   });
 
   it("replaces individual planets with larger-scale landmarks", async () => {
