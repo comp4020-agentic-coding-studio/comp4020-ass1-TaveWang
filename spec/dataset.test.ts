@@ -9,6 +9,7 @@ import {
   percentOf,
 } from "../src/lib/camera";
 import { OBJECTS, SCALE_LEVELS, allSources, levelAt, objectById } from "../src/data/cosmos";
+import { labelBounds, layout } from "../src/lib/layout";
 import { AU_KM, LY_KM, crossesInterstellar, format, unitFor } from "../src/lib/units";
 
 /*
@@ -179,6 +180,80 @@ describe("scale levels", () => {
     }
     expect(levelAt(MIN_LOG_R).id).toBe("sun");
     expect(levelAt(MAX_LOG_R).id).toBe("horizon");
+  });
+});
+
+describe("label placement", () => {
+  // The stage is a wide, short band (62vh), not the viewport — a structure's
+  // circle is much smaller there than in a square box, which is how the Milky
+  // Way came to be unlabelled inside the band named after it even though a
+  // full-viewport test said otherwise. Test the shape that actually ships.
+  const names = (logR: number, w = 1920, h = 669) =>
+    layout(logR, w, h).labelled.map((entry) => entry.object.name);
+
+  it("labels the landmark each scale band is named after", () => {
+    // Regression: the Sun's label sits dead centre and outranks everything, so
+    // with a single fixed label position it blocked the Milky Way's label at
+    // exactly the scale the band is named for. Caught in a browser, not by a
+    // test — hence this one.
+    expect(names(18.6).join(" ")).toContain("Milky Way");
+    expect(names(19.9).join(" ")).toContain("Local Group");
+    expect(names(MAX_LOG_R).join(" ")).toContain("observable universe");
+  });
+
+  it("never places two labels on top of each other", () => {
+    for (let logR = MIN_LOG_R; logR <= MAX_LOG_R; logR += 0.25) {
+      for (const [width, height] of [
+        [1920, 669],
+        [390, 440],
+      ]) {
+        const { labelled } = layout(logR, width, height, width < 600 ? 5 : 12);
+        for (let i = 0; i < labelled.length; i++) {
+          for (let j = i + 1; j < labelled.length; j++) {
+            const a = labelBounds(labelled[i], width);
+            const b = labelBounds(labelled[j], width);
+            const clear =
+              a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom;
+            expect(
+              clear,
+              `${labelled[i].object.name} and ${labelled[j].object.name} overlap at logR ${logR.toFixed(2)} on ${width}×${height}`,
+            ).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it("shows fewer labels on a phone than on a desktop", () => {
+    let phoneTotal = 0;
+    let desktopTotal = 0;
+    for (let logR = MIN_LOG_R; logR <= MAX_LOG_R; logR += 0.5) {
+      const phone = layout(logR, 390, 440, 5).labelled.length;
+      phoneTotal += phone;
+      desktopTotal += layout(logR, 1920, 669, 12).labelled.length;
+      expect(phone, `too many labels on a phone at logR ${logR}`).toBeLessThanOrEqual(5);
+    }
+    expect(
+      phoneTotal,
+      "a phone must carry a lighter label load across the journey, not just the same one in a smaller box",
+    ).toBeLessThan(desktopTotal);
+  });
+
+  it("keeps every label inside the viewport", () => {
+    for (let logR = MIN_LOG_R; logR <= MAX_LOG_R; logR += 0.25) {
+      for (const entry of layout(logR, 390, 440, 5).labelled) {
+        expect(entry.labelX, `${entry.object.name} at logR ${logR}`).toBeGreaterThanOrEqual(0);
+        expect(entry.labelX).toBeLessThanOrEqual(390);
+        expect(entry.labelY).toBeGreaterThanOrEqual(0);
+        expect(entry.labelY).toBeLessThanOrEqual(440);
+      }
+    }
+  });
+
+  it("always keeps the Sun's location labelled", () => {
+    for (let logR = MIN_LOG_R; logR <= MAX_LOG_R; logR += 0.25) {
+      expect(names(logR), `the Sun is unlabelled at logR ${logR}`).toContain("The Sun");
+    }
   });
 });
 

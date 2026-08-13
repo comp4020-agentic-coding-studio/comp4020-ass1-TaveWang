@@ -1,10 +1,9 @@
 ---
+import Explorer from "../components/Explorer";
+import { allSources } from "../data/cosmos";
 import "../styles/global.css";
-import { MILESTONES } from "../data/milestones";
-import { formatDistance, layerForDistance } from "../lib/scale";
 
-const sources = [...new Map(MILESTONES.map((m) => [m.source.url, m.source])).values()];
-const first = MILESTONES[0];
+const sources = allSources();
 ---
 
 <!doctype html>
@@ -12,110 +11,78 @@ const first = MILESTONES[0];
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UP: How Far Until Earth Disappears?</title>
+    <meta
+      name="description"
+      content="Zoom out from the Sun to the edge of the observable universe. Every step outward trades detail for context."
+    />
+    <title>The Sun, in Context</title>
   </head>
   <body>
-    <div class="hud">
-      <p class="hud__readout" aria-hidden="true">
-        <span data-testid="distance" data-distance-m={first.distanceM}>
-          {formatDistance(first.distanceM)}
-        </span>
-        <span class="hud__layer">{layerForDistance(first.distanceM)}</span>
-      </p>
-      <input
-        type="range"
-        class="hud__scrubber"
-        data-testid="scrubber"
-        aria-label="Jump to a point in the journey, from ground level to Voyager 1's Pale Blue Dot"
-        min="0"
-        max="100"
-        value="0"
-      />
-    </div>
-
     <header class="site-header">
       <nav aria-label="Primary">
-        <a href="#top">Home</a>
+        <a href="#top">The Sun, in Context</a>
+        <a href="#journey-text">Text version</a>
+        <a href="#sources">Sources</a>
       </nav>
     </header>
 
     <main id="top">
-      <section class="intro">
-        <h1>UP: How Far Until Earth Disappears?</h1>
-        <p>
-          Scroll to travel straight up from where you're standing — through the
-          air, past the edge of space, out across the Solar System. The
-          distance above always reads true; how much of it fits on your screen
-          at once does not, and that trade-off is explained as it happens.
+      <div class="intro">
+        <h1>The Sun, in Context</h1>
+        <p class="intro__standfirst">
+          Zoom out until home disappears. The Sun only looks like the centre of
+          everything because you haven&rsquo;t pulled back yet &mdash; and every
+          step outward trades detail for the context that was missing.
         </p>
-      </section>
+      </div>
 
-      {
-        MILESTONES.map((milestone) => (
-          <section class="milestone" id={milestone.id} data-category={milestone.category}>
-            <img
-              class="milestone__photo"
-              src={`./images/milestones/${milestone.id}.jpg`}
-              alt={milestone.photoAlt}
-              loading="lazy"
-            />
-            <div class="milestone__scrim" aria-hidden="true"></div>
-            <div class="milestone__content">
-              <h2>{milestone.name}</h2>
-              <p class="milestone__distance">{formatDistance(milestone.distanceM)}</p>
-              <p>{milestone.fact}</p>
-              {milestone.note && <p class="milestone__note">{milestone.note}</p>}
-              {milestone.id === "sea-level" && (
-                <dl class="milestone__air">
-                  <dt>Nitrogen</dt>
-                  <dd>78.08%</dd>
-                  <dt>Oxygen</dt>
-                  <dd>20.95%</dd>
-                  <dt>Argon</dt>
-                  <dd>0.93%</dd>
-                  <dt>Everything else (CO₂, etc.)</dt>
-                  <dd>0.04%</dd>
-                </dl>
-              )}
-              <p class="milestone__source">
-                Source: <a href={milestone.source.url}>{milestone.source.name}</a>
-              </p>
-              {milestone.id === "karman-line" && (
-                <p class="notice" data-testid="scale-notice">
-                  From here on, each screen you scroll represents far more real
-                  distance than the one before it. That compression is
-                  deliberate — it's the only way the atmosphere and the outer
-                  Solar System fit on one page — and the number above is always
-                  the true distance, however the page compresses it visually.
-                </p>
-              )}
-            </div>
-          </section>
-        ))
-      }
+      {/* client:load, never client:only: the invariants parse the built HTML,
+          so the labels, the readout and the text journey all have to exist on
+          disk before a single line of JavaScript runs. */}
+      <Explorer client:load />
 
-      <section class="outro">
-        <p>
-          That's as far as this page goes.{" "}
-          <a data-testid="restart" href="#top">Back to Earth ↑</a>
-        </p>
-      </section>
-
-      <section data-testid="sources" aria-label="Sources">
+      <section class="sources" id="sources" data-testid="sources" aria-label="Sources">
         <h2>Sources</h2>
+        <p>
+          Every distance and size on this page was read off one of these pages
+          during development, not recalled from memory. Each object&rsquo;s own
+          details panel cites the specific page its figure came from, and the
+          date it was read.
+        </p>
         <ul>
-          {sources.map((source) => (
-            <li>
-              <a href={source.url}>{source.name}</a>
-            </li>
-          ))}
+          {
+            sources.map((source) => (
+              <li>
+                <a href={source.url}>{source.name}</a>
+                <span class="sources__accessed"> — read {source.accessed}</span>
+              </li>
+            ))
+          }
         </ul>
+      </section>
+
+      <section class="ending" aria-label="In closing">
+        <p class="ending__line">
+          At the start, the Sun filled the screen. Its entire neighbourhood is
+          now smaller than the marker standing in for it.
+        </p>
+        <p class="ending__line">
+          Pulling back did not make home matter less. It showed how much context
+          was missing from the first view.
+        </p>
       </section>
     </main>
 
-    <script>
-      import "../scripts/hud.ts";
-      import "../scripts/photo-reveal.ts";
-    </script>
+    <footer class="site-footer">
+      <p>
+        A student prototype for COMP4020 Agentic Coding Studio. Data from NASA,
+        NASA/JPL and published astronomy literature, cited above. Interaction
+        informed by TheSkyLive&rsquo;s 3D Solar System Viewer (camera anchoring,
+        orbit lines as spatial context) and NASA&rsquo;s Eyes on the Solar
+        System (continuous camera scaling, semantic labels, object focus). The
+        implementation, artwork and data model here are original; no assets,
+        code or branding were taken from either.
+      </p>
+    </footer>
   </body>
 </html>
