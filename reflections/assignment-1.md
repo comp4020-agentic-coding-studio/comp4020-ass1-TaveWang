@@ -2,25 +2,26 @@
 
 **What was the breakthrough that moved the work forward?**
 
-The breakthrough wasn't a piece of code — it was deciding to build in five
-checked, committed stages instead of one large pass. The first version of the
-scroll-to-distance mapping assumed every milestone sat at a fixed, formula-derived
-position, and it would have been easy to wire that straight into the page and
-call it done. Building the pure logic first, with its own unit tests, before
-touching the DOM at all is what surfaced that the assumption didn't survive
-contact with real content — some milestones carry a note or a source table and
-others don't, so section heights aren't uniform. Once distance-mapping was
-separated from measurement, fixing it was a small, local change instead of a
-rewrite discovered mid-integration.
+Deciding that the zoom would be logarithmic but the picture would not. My first
+instinct was to log-compress the positions too, because that is the obvious way
+to fit the Sun and the observable universe into one view. Keeping the radial mapping strictly linear *within* each
+frame — so only the act of zooming is compressed — solved problems I hadn't
+reached yet. Every frame became a true-to-scale map, so I never had to invent a
+rule for when an object "collapses to a point": everything in the Solar System
+falls inside the same few pixels once you are far enough out, because that is
+what actually happens. The Sun's switch to a "you are here" marker fell out of
+the same arithmetic rather than being a threshold I typed in. The idea got
+simpler and more honest at once, which I now read as a signal I have the right
+model rather than a clever one.
 
 **What did this work change about who I want to be as a software developer?**
 
-I want to be someone who treats a green check as the start of a question, not
-the end of one — the `prefers-reduced-motion` test passing for the wrong
-reason (an untested assumption about how Astro emits CSS) was easy to miss
-precisely because the visible signal looked fine. The habit I want to keep is
-the one this assignment forced: before accepting a fix, ask whether it landed
-in the actual bug or in the nearest thing that made the red turn green, and
-when a correction is really about a recurring rule rather than one line, put
-it where the next piece of work will actually see it — the harness, not just
-the diff.
+I want to be someone who reads what a warning is pointing at, not just what it
+says. A lint message about an unused import was, underneath, a false citation:
+every planet's radius was credited to a table that has never contained radii.
+Deleting the variable would have made the tool quiet and the page wrong. The
+same pattern kept recurring — a passing test that asserted a stage shape the
+site does not ship, a mobile label cap that never actually bound. In each case
+the tooling was technically satisfied and the artefact was not. What I want to
+keep is the habit of treating green as a question: satisfied by what, exactly,
+and is that the thing I actually care about?

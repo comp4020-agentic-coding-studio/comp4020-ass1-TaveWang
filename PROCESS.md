@@ -1,69 +1,62 @@
 # Process overview
 
-A reading-guide to how the work came together — a map to your process, not an
-essay about it. Markers read this file and follow its citations; they don't
-trawl the repo for evidence you didn't point at, so if a moment mattered, cite
-it.
-
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and each brief adds its own word count and moment count.
-
 ## What I built
 
-"UP: How Far Until Earth Disappears?" is a scroll-driven explainer: scrolling
-maps to increasing distance from Earth, from sea level through the atmosphere,
-past the Kármán line and the ISS, out through the Moon and the planets, to the
-point 6.06 billion km away where Voyager 1 looked back and Earth was 0.12
-pixels wide. The core idea is disclosed compression — the scale that lets
-atmosphere and outer Solar System share one page is log-linear, not linear,
-and the page says so at the exact point the compression starts, with a
-persistent machine-readable distance readout so the number is always true
-even when the scroll-to-distance mapping isn't.
+"The Sun, in Context" is a zoom explainer with one mechanic: pull back from the
+Sun's surface to the edge of the observable universe, continuously, and watch
+everything you were just looking at collapse into the centre. The camera is a
+single semantic scalar — `logR`, the log of the visible radius in kilometres —
+so zooming is logarithmic while the picture never is: within one frame,
+distances are drawn strictly to scale. That is what makes the inner planets
+genuinely bunch toward the middle as you retreat, rather than being animated
+into doing so. The counterpart is that the page has to be loud about what it
+*isn't*: bearings are chosen for legibility, marker sizes mean nothing
+physical, and the Solar System's edge depends on which definition you pick.
+
+This replaced an earlier prototype in the same repo — a deliberate call, since
+the brief asks for one strong idea and nothing else. The old one is preserved
+at the `up-explainer` tag.
 
 ## The moments that mattered
 
-**The distance mapping assumed uniform section height, and real content broke
-that before it ever shipped.** The first draft of the scroll→distance function
-placed every milestone at a fixed `i * sectionPx`. Before wiring it to the
-page I noticed some milestones carry a note, a source line, or an
-air-composition table and others don't — section heights aren't uniform, so a
-formula-derived position would drift from the real rendered layout the moment
-copy changed. Instead of shipping the simpler version, I generalized the
-function to take real per-milestone pixel positions measured from the live
-DOM (`getBoundingClientRect`), re-measured on resize. I confirmed it by adding
-an unevenly-spaced-anchor test and by scrolling the real built page in a
-Playwright-driven Chromium session, watching the readout track correctly in
-both directions —
-[`5e39325`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/5e39325).
+**A lint warning about an unused variable was really a warning about a false
+citation.** oxlint flagged that my JPL physical-parameters source constant was
+imported and never used. The obvious fix was to delete it. Instead I asked why
+it was unused, and found that every planet's *radius* was implicitly cited to
+JPL's orbital-elements page — a table that contains no radii at all, because
+JPL publishes sizes and orbits separately. Jupiter's "radius 69,911 km" was
+sourced to a page that has never stated it. I added a required `radiusSource`
+field and a test that fails the build if any object shows a size without its
+own citation —
+[`9ca4484`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/9ca4484).
 
-**A failing CSS test turned out to be a wrong assumption in my own test, not a
-bug in the page.** `prefers-reduced-motion` kept reporting missing even after
-I'd added the media query to `global.css`. Re-prompting wouldn't have found
-this — the CSS was already correct. I inspected the actual `dist/` output and
-found Astro inlines small stylesheets into a `<style>` tag instead of always
-emitting `_astro/*.css`; my test only checked the external file. I fixed the
-test's `cssFiles()` helper to scan inline `<style>` tags too, and wrote the
-gotcha into `CLAUDE.md` so a future week's build doesn't lose an afternoon to
-the same false negative —
-[`14f0c02`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/14f0c02).
+**I cut Voyager 1 because including it would have quietly changed what the
+number meant.** It was on my object list and it is the obvious thing to put at
+the heliopause. But NASA's live tracker reports its distance from *Earth*, and
+this map is Sun-centred. The number would have looked right, sat in the right
+place, and silently measured something else. Barnard's Star and Sirius went for a
+blunter reason: no NASA or ESA page I could reach stated their distances, and I
+decided an unsourced number does not ship. The dataset records all three
+omissions and why, so each absence reads as a decision —
+[`9ca4484`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/9ca4484).
 
-**`formatDistance`'s unit thresholds were wrong, and the table-driven test is
-what caught it, not a read-through.** `149,600,000,000` m rendered as "149.6
-billion km" instead of "149.6 million km" — a divisor bug (`/1e9` should have
-been the million-km tier, `/1e12` the billion-km tier). Table-driven
-`it.each` cases across all four unit tiers caught every boundary at once
-rather than one manual example, and re-running them after the fix is what told
-me it was actually right, not just right for the one case I'd checked by eye —
-[`0d4187a`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/0d4187a).
+**A green suite and a stalled animation at the same time.** I had written the
+camera's easing loop with `requestAnimationFrame` scheduled inside a `setState`
+updater, which reads fine and worked in every reduced-motion test. The one test
+that ran with motion enabled failed: the camera stopped at logR 11.8 instead of
+reaching 23.7. React may invoke an updater more than once, so scheduling
+a frame inside it double-schedules or drops. Moving the eased value to a ref
+and the scheduling outside the updater fixed it. I could have raised the
+timeout and moved on —
+[`1d2122d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/1d2122d).
 
-**The HUD's `aria-live="polite"` looked correct and would have flooded screen
-readers.** It read as the obvious choice — announce the distance as it
-changes — until I traced through what "as it changes" means for a value
-updated every animation frame during a scroll: several announcements a
-second. The milestone content is already in the accessible document flow as
-ordinary headings and paragraphs in scroll order, so the HUD is a sighted-only
-convenience, not new information. I switched it to `aria-hidden="true"` and
-wrote the reasoning into `CLAUDE.md` so a future live-updating readout doesn't
-reach for `aria-live` on a per-frame value without a coarser update strategy —
-[`8ed6e33`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/8ed6e33).
+**My tests were checking a shape the site does not ship.** A screenshot showed
+the Milky Way unlabelled at the exact scale band named "The Milky Way", while a
+unit test asserting the opposite passed. The tests assumed a square-ish stage;
+the real one is a wide, short band, where a structure's circle is much smaller
+and fell under the label threshold. Two causes, not one: the threshold, and the
+Sun's centre label blocking anything near the middle. Labels now try four
+positions, the tests use the shipped aspect ratios, and the collision estimate
+accounts for the fact that letterspaced labels are 45% wider than a character
+count predicts —
+[`74fa230`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/74fa230).

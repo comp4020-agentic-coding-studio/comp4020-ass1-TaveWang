@@ -154,199 +154,107 @@ in `src/lib/store.ts` if useful as a reference, but nothing here is carried
 forward automatically --- build this again only if this week's design actually
 needs cross-island shared state.)
 
-## This week (UP): decisions worth carrying forward
+## This deliverable: "The Sun, in Context"
 
-No React island this week — the only thing tracking live state is the HUD's
-scroll position, and nothing else needs to read it, so a plain
-`<script type="module">` (`src/scripts/hud.ts`) beats paying hydration cost
-for zero cross-component sharing. If a future week's brief needs two things
-to react to the same live value, that's when `useSyncExternalStore` earns
-its keep again, not before.
+A Sun-centred zoom explainer. The visitor pulls back continuously from the
+Sun's surface to the observable-universe horizon; nothing else happens. The
+previous prototype in this repo ("UP", a scroll-driven altitude explainer) was
+replaced wholesale rather than kept alongside — the assessment spec asks for
+"one strong idea with a point of view, and nothing else", so two explainers on
+one site is a mark risk, not a bonus. UP's shipped state is preserved at the
+`up-explainer` tag; nothing was lost, and `git show up-explainer:<path>` still
+reaches any of it.
 
-**Distance mapping is driven by measured anchors, not assumed section
-height.** The first version of `distanceAtScroll` assumed every milestone
-sat at a uniform `i * sectionPx` — wrong the moment sections have different
-amounts of content (a note, a sourced fact, an air-composition list). Fixed
-by measuring each `.milestone`'s real `getBoundingClientRect().top +
-window.scrollY` from the live DOM (`src/scripts/hud.ts`) and interpolating
-between those measured anchors (`distanceAtPosition` in `src/lib/scale.ts`),
-re-measuring on `resize`. Don't reintroduce a fixed-height assumption here —
-it'll drift the instant the copy changes.
+### Rules that emerged from building it
 
-**Never hijack scroll.** The HUD only reads `window.scrollY` on a passive,
-`requestAnimationFrame`-throttled `scroll` listener — nothing calls
-`preventDefault()` or intercepts the wheel/touch/keyboard. Keyboard
-operability (`PageUp`/`PageDown`/`Space`/`Home`/`End`/arrows) falls out of
-that for free, because it's the browser's own native scrolling, not a
-library reimplementing it. Keep it that way even if a future pass wants
-snappier per-section transitions.
+**Every astronomical claim cites a page that was actually fetched.** Not
+recalled, not inferred from a plausible-looking number. `src/data/cosmos.ts`
+carries a source URL and an ISO access date per record, and
+`spec/dataset.test.ts` fails the build if either is missing. When a figure
+could not be sourced, the object was dropped rather than estimated — Voyager 1
+(NASA's tracker gives distance from *Earth*, and this map is Sun-centred, so
+including it would silently change what the number means), Barnard's Star and
+Sirius (no reachable NASA/ESA page stated a distance during development).
 
-**Past the Moon, "distance from Earth" stops being a stable number** — Earth
-and every other planet both orbit the Sun, so there's no fixed "how far from
-Earth" for Mars onward. Mercury and Venus are omitted from the milestone
-sequence entirely (they orbit closer to the Sun than Earth does, so there's
-no outward-increasing number for them either), and Mars onward switches to
-mean distance from the Sun instead — disclosed via the `note` field on the
-milestones where the reframe happens, same as the log-scale-compression
-notice. If next week's data has a similar "the metric quietly changes
-meaning partway through" seam, disclose it the same way rather than picking
-a number that reads clean but means something different than the reader
-assumes.
+**A body's size is a separate claim from its distance, and needs a separate
+citation.** JPL publishes orbital elements and physical parameters as different
+tables. This was caught by oxlint, of all things: the physical-parameters
+source constant was imported and never used, which meant every planet's radius
+was implicitly cited to the elements page — a table containing no radii at all.
+The fix was a required `radiusSource` field and a test for it, not deleting the
+unused import. A lint warning about an unused variable was really a warning
+about a false citation; read what a warning is *pointing at*, not just what it
+says.
 
-**Astro inlines small stylesheets into a `<style>` tag instead of always
-emitting `dist/_astro/*.css`.** A CSS-presence test that only reads
-`_astro/*.css` will pass or fail depending on how big the stylesheet
-happens to be that week, for reasons unrelated to whether the CSS rule
-actually exists. `spec/assignment-1.test.ts`'s `cssFiles()` helper reads
-both the external files and every parsed page's inline `<style>` tags —
-copy that pattern rather than re-deriving it if a future CSS-content test
-hits the same false negative.
+**Canonical distances are kilometres; every display unit is derived.** Never
+lay anything out from a formatted string. The km→light-year switch happens at
+exactly one light-year, so the boundary is a fact the page can explain rather
+than an arbitrary threshold — see `src/lib/units.ts`.
 
-**The CI link check (`linkinator`) is CI-only — `pnpm check` doesn't run it —
-so a broken/blocked external link only surfaces after shipping, not during
-local iteration.** First `/ship` run 403'd on `noaa.gov` from the GitHub
-Actions runner's IP; the same URL returns 200 to a normal browser UA. That's
-bot-blocking on NOAA's end, not a dead citation, so `.github/workflows/checks.yml`
-treats 403 as `warn` rather than a failure (`--status-code "403:warn"`) —
-confirmed by hand first, since a blanket skip would also hide a genuinely
-dead link going forward.
+**Camera state is one semantic scalar, never pixels.** `logR` = log10 of the
+visible radius in kilometres. Resizing changes how many pixels a kilometre
+gets and nothing else, which is why a rotation or a window drag leaves the
+reader exactly where they were. If a resize ever moves the view, something is
+deriving position from viewport dimensions — find it.
 
-**The HUD is `aria-hidden`, not `aria-live`.** It first shipped as
-`aria-live="polite"`, which sounded right — announce the distance as it
-changes — until it was obvious that "as it changes" means every animation
-frame during a scroll, which would flood a screen reader with updates
-several times a second. The distance and milestone facts are already in the
-accessible document flow as ordinary headings and paragraphs, in the same
-order a sighted user scrolls through them, so the HUD is a sighted-only
-convenience layer, not new information — hiding it from assistive tech
-avoids the spam without losing any content. If a future live-updating
-readout is genuinely the only place some information lives, it needs a
-coarser update strategy (e.g. only announce on milestone-entry, not every
-frame), not a bare `aria-live="polite"` on a per-frame value.
+**Visibility is derived from distance and camera scale, full stop.** No step
+counter, no scroll index, no hand-authored "appears at stage 4". The Solar
+System collapses into a point because everything in it falls inside the same
+few pixels, not because anything was told to disappear. Editorial nudges exist
+(`enterAdjust`) but are bounded by a test so they can never reorder the map.
 
-**A focusable control can't live inside an `aria-hidden="true"` ancestor —
-adding the draggable distance scrubber meant splitting the HUD in two.**
-The HUD div itself used to carry `aria-hidden="true"` on the whole thing
-(readout text and all, per the decision above). Once the scrubber
-(`<input type="range" data-testid="scrubber">`) needed to sit in that same
-box, `aria-hidden` had to move down onto just the `.hud__readout` `<p>` —
-a real interactive control must never be nested under `aria-hidden="true"`,
-since that hides it from assistive tech while leaving it reachable by
-sighted keyboard tabbing, a broken combination. The scrubber gets its own
-`aria-label` instead and is a native `<input type="range">` rather than a
-styled div, so dragging, arrow keys, Home/End, and Page Up/Down all work
-without any custom key handling — same "native control, not a
-reimplementation" rule as the restart link and the no-scroll-hijacking
-decision above. Wiring reuses the existing scroll/render pipeline rather
-than duplicating distance math: the scrubber's `input` handler calls
-`window.scrollTo()` (via `positionForPercent` in `src/lib/scale.ts`), which
-re-triggers the same passive `scroll` listener and `render()` already
-driving the readout, and `render()` sets the scrubber's `.value` from
-`percentForPosition()` so it stays in sync during ordinary scrolling too —
-one source of truth for scroll↔distance↔percent, not three.
+**A marker's size never means a physical size, and the page says so.** Below
+`MIN_MARKER_PX` a body is drawn at a fixed size. The Sun becomes a "you are
+here" marker at exactly the computed scale where drawing it to scale would make
+it invisible — that threshold is derived, not typed in, so it is right at both
+marking viewports for free. Never enlarge an object to keep it visible.
 
-**A CSS width fix worth remembering: giving `.hud` a fixed width broke text
-wrapping before it broke anything else.** Adding the scrubber meant giving
-`.hud` an explicit `width` (needed so the range input has something stable
-to be 100% of) instead of the old auto-sized-to-content box. That
-immediately wrapped the longest readout strings ("111 million km" /
-"INTERPLANETARY SPACE") into an ugly multi-line mess, because the old
-`.hud__readout` was a `flex-direction: row` with `align-items: baseline` —
-fine when the box could grow to fit, wrong once the box has a fixed width.
-Fixed by stacking `.hud__readout` as a column instead of a row. Caught by
-actually screenshotting both marking viewports after the change, not by
-`pnpm check` (no test asserts wrapping) — a reminder that a passing test
-suite and a correct-looking layout are different claims.
+**React state updaters must be pure.** The camera ease first shipped with
+`requestAnimationFrame` scheduled *inside* a `setLogR` updater. React is free
+to call an updater more than once, so the loop could double-schedule or stall:
+with motion enabled the camera stopped at logR 11.8 instead of reaching 23.7.
+The eased value lives in a ref and the loop schedules itself outside the
+updater. A test caught this; a screenshot would not have.
 
-**Illustrations were later replaced with real photos, self-hosted, one per
-milestone — and that's the one place `Milestone` does carry a presentation
-field.** The SVG icons above were dropped entirely (not kept alongside) in
-favour of real NASA/JPL photographs, at the user's explicit request. All 12
-are U.S. federal government work (public domain, 17 U.S.C. § 105), each
-resolved to a concrete direct-download URL via `WebFetch` against its real
-`science.nasa.gov` / `nasa.gov` / `svs.gsfc.nasa.gov` landing page — never
-guessed from memory — then downloaded once and resized/recompressed locally
-with `sips -Z 1000 -s format jpeg -s formatOptions 65` (the only image tool
-available; no `cwebp`/imagemagick) into `public/images/milestones/<id>.jpg`,
-landing at roughly 30–200KB each rather than hotlinking. One candidate
-(Jupiter, originally Voyager 1's PIA00454) was rejected after visually
-inspecting the downloaded file: it was a 2×2 grid of four small rotation
-frames, not a single disk, which would have cropped badly under
-`object-fit: cover`. It was swapped for Cassini's single-frame "Jupiter
-Portrait" (PIA04866) instead — a reminder that a URL returning 200 with
-plausible dimensions doesn't guarantee the image is fit for its slot; open
-it and look.
+**Test at the aspect ratio that actually ships.** The unit tests assumed a
+square-ish stage; the real one is a wide, short band (62vh). A structure's
+circle is far smaller there, and the Milky Way fell under the label threshold —
+so it went unlabelled inside the scale band named after it, while a
+full-viewport test insisted it was fine. `spec/dataset.test.ts` now uses
+1920×669 and 390×440, the shipped shapes.
 
-The "the higher you go, the more Earth's curve and then its shrinking disk
-show" narrative the user asked for is carried by **which photo** is chosen
-per milestone (ground horizon → ISS limb shot → full Earth-orbit shot → full
-planetary disks → Voyager's actual Pale Blue Dot), not by a fake blur filter
-simulating atmosphere — a documentary photo already looks different at each
-altitude/distance without needing to be lied to.
+**Label collision estimates must account for the type they are estimating.**
+Structure and horizon labels are uppercase and letterspaced, so they are about
+45% wider than a character count predicts. THE OBSERVABLE UNIVERSE ran straight
+through the Sun's label while the collision pass believed the two were clear.
+Estimated boxes are fine — measuring text would mean a layout read per label
+per frame — but the estimate has to know about the CSS.
 
-**Photos later moved from a small boxed image above the text to a
-full-bleed, edge-to-edge section background, with the fade made continuous
-and reversible instead of a one-shot reveal.** The user asked for this
-explicitly ("borderless", "the photo should be the background of each
-stage", fading as you scroll up *and* down, not just fading in once and
-staying). To go full-bleed, the 40rem reading-column constraint moved off
-`main` and onto the three non-milestone sections (`.intro`, `.outro`,
-`[data-testid="sources"]`) individually, so `.milestone` sections (still
-plain block children of `main`, still in normal flow — `hud.ts`'s
-`getBoundingClientRect()` anchor measurement is unaffected) can span the
-full viewport width with no `100vw`/negative-margin breakout hack, which
-would otherwise be thrown off by `main`'s own padding. Each milestone photo
-is now `position: absolute; inset: 0` inside a `position: relative`
-`.milestone`, with a fixed (non-animated) dark gradient `.milestone__scrim`
-on top of it for text contrast regardless of the photo's own brightness,
-and the text itself in a `.milestone__content` div that keeps the 40rem
-column and stacks above both via `z-index`. Because contrast is now
-guaranteed by the scrim rather than by a per-category foreground color, the
-four `.milestone[data-category="..."] { color: ... }` rules and the
-orbit/solar-system/interstellar link-color override were deleted — milestone
-text is uniformly light-on-scrim now.
+**A cap is not a density rule until it binds.** Mobile had a lower
+`maxLabels`, but collisions culled the list long before the cap mattered, so a
+390px screen carried the same label load as a 1920px one, just packed tighter.
+Phones now demand real clearance around every label. If a limit never fires, it
+is decoration.
 
-The reveal script (`src/scripts/photo-reveal.ts`) was rewritten from a
-one-shot `IntersectionObserver` (add `.is-visible`, `unobserve`, done
-forever) to a continuous, reversible, scroll-position-driven opacity: a
-passive, `requestAnimationFrame`-throttled `scroll` listener (same
-throttling pattern as `hud.ts`, but a fully separate listener with no shared
-state — still true after this rewrite) computes each section's distance
-from the viewport's vertical center on every frame and sets that photo's
-`opacity` proportionally, fading toward (never fully down to) a minimum as
-the section scrolls away in *either* direction. Under `prefers-reduced-motion:
-reduce` the script attaches no listener at all and never touches `opacity`,
-so photos render at their CSS default (fully opaque) with zero motion —
-deliberately not relying on the sitewide zeroed-transition-duration rule to
-mask a moving state, same reasoning as before.
+**One island, not four.** Camera scale and selection are read by the readout,
+the labels, the slider and the panel. In separate roots that would need a
+module store (see below); in one root it is plain `useState`. Reach for the
+store only when something genuinely cannot be one root.
 
-`photoAlt: string` is the one new field added to `Milestone`, and
-deliberately breaks the "no presentation field on Milestone" rule the old
-icon mapping followed. That rule was about not coupling data to a *visual
-component* (which icon to render); alt text isn't presentation, it's
-accessible content — a real documentary photo is something a screen-reader
-user should get described, unlike the old decorative SVGs, which is also why
-the `<img>` now carries a real `alt` instead of `aria-hidden="true"`.
+**Essential content never lives only in the canvas.** The canvas is
+`aria-hidden` decoration. Every label is a real focusable `<button>`, and the
+whole journey also ships as an ordered list of text. This is the deliberate
+inversion of NASA Eyes, where "SUN" and "Voyager 1" are painted into a canvas
+and appear nowhere in the accessible tree — verified by driving it in a browser
+and dumping its DOM.
 
-**The background is one continuous gradient on `body`, not per-category
-opaque blocks — and its percentage stops are a static guess, not
-scroll-synced.** `.milestone[data-category="..."]` and
-`.outro`/`[data-testid="sources"]` used to each set an opaque `background`,
-producing a hard color cut at every category boundary. Now only `color` is
-set per category, and `body` carries one `linear-gradient` spanning the
-full document height, with stops chosen proportionally to how many
-milestones fall in each category (intro + 3 atmosphere ≈ 0–25%, 2 orbit ≈
-25–41%, 6 solar-system ≈ 41–83%, interstellar tail ≈ 83–100%). This is
-deliberately approximate — no JS, no scroll-position math, zero risk to
-`src/scripts/hud.ts` — consistent with the page's own theme that scroll
-position and true distance already diverge without being hidden. If a
-future edit adds/removes milestones and shifts how many fall in each
-category, nudge these percentages by hand; nothing will fail loudly if they
-drift, since there's no test tying a gradient stop to a milestone count.
-Since milestone sections went full-bleed with photo backgrounds (above),
-this gradient is mostly hidden behind those photos now — it still shows
-through in the `.intro`/`.outro`/sources gaps and briefly during each
-photo's low-opacity moments as a section scrolls away from center.
+**Never intercept Ctrl/⌘+wheel.** That is the browser's own page zoom. Custom
+wheel and pinch handling is scoped to the model element only, never the page.
+
+**Announce scale bands, not frames.** The live region fires only when the
+reader crosses into a *named* band. An `aria-live` fed an eased per-frame value
+announces several times a second — the same scar this file already carried from
+the previous prototype's distance readout, in a new shape.
 
 ## stylelint: what I configured and what I left alone
 
