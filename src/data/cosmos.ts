@@ -520,7 +520,7 @@ export const OBJECTS: CosmicObject[] = [
       "The closest star to the Sun, 4.24 light-years away. By the time it appears here, the entire Solar System has shrunk to a dot.",
     source: NASA_SUN,
     uncertaintyNote:
-      "NASA's Sun facts page gives 4.24 light-years; NASA's Imagine the Universe gives 4.25. The disagreement is in the last digit of a very carefully measured number.",
+      "NASA's Sun facts page gives 4.24 light-years; NASA's Imagine the Universe gives 4.25. The disagreement is in the last digit of a very carefully measured number. It has no photograph here: NASA's image library holds a portrait of Alpha Centauri A and B, but Proxima is not in that frame, and borrowing it would be labelling the wrong star.",
     positionIsDiagrammatic: true,
   },
   {
@@ -750,7 +750,9 @@ export const OBJECTS: CosmicObject[] = [
       credit: "NASA/JPL-Caltech/SSC (Spitzer Space Telescope)",
       url: "https://images.nasa.gov/details/PIA07906",
       accessed: NASA_PHOTO_ACCESSED,
-      discFraction: 1.0,
+      // A wide, faint field: zoomed in so galaxies fill the symbol rather than
+      // reading as a dark speck once it is drawn at 24 pixels.
+      discFraction: 0.5,
     },
     shortDescription:
       "About 2,000 galaxies packed together 65 million light-years away — the nearest place the universe gets genuinely crowded.",

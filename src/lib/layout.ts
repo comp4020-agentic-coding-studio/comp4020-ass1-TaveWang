@@ -134,10 +134,10 @@ export interface Layout {
  * Milky Way itself going unlabelled inside the band named after it.
  */
 const PLACEMENTS = [
-  { side: "right", dx: 10, dy: -9 },
-  { side: "right", dx: 10, dy: 15 },
-  { side: "left", dx: -10, dy: -9 },
-  { side: "left", dx: -10, dy: 15 },
+  { side: "right", dx: 10, dy: -18 },
+  { side: "right", dx: 10, dy: 20 },
+  { side: "left", dx: -10, dy: -18 },
+  { side: "left", dx: -10, dy: 20 },
 ] as const;
 
 export type LabelSide = (typeof PLACEMENTS)[number]["side"];
@@ -170,7 +170,11 @@ function labelBox(
   wide: boolean,
 ) {
   const w = name.length * charWidth * (wide ? WIDE_FACTOR : 1) + 16 + gap;
-  const h = 22 + gap;
+  // Two lines on a desktop — the name and the category beneath it — not one.
+  // Modelling this as a single 22px line let vertically-adjacent labels
+  // overlap on screen while the estimate believed they were clear; the phone
+  // hides the category line, so it really is one line there.
+  const h = (charWidth < 7 ? 21 : 32) + gap;
   const left = side === "right" ? x : x - w;
   return { left, right: left + w, top: y - h / 2, bottom: y + h / 2 };
 }
