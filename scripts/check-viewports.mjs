@@ -154,7 +154,9 @@ server.close();
 
 if (failures.length > 0) {
   console.error(`\n✗ ${failures.length} problem(s):`);
-  for (const message of [...new Set(failures)]) console.error(`  - ${message}`);
+  // A Set is already iterable — the same failure repeats across scales, and
+  // deduplicating it does not need a copy of the list.
+  for (const message of new Set(failures)) console.error(`  - ${message}`);
   process.exit(1);
 }
 console.log("\n✓ no overflow, no console errors, controls and labels in bounds at both marking viewports");
