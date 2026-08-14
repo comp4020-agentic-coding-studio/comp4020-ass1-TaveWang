@@ -287,7 +287,16 @@ export function layout(
       entry.labelY = entry.y;
     }
 
-    // --- how big to draw the body -----------------------------------------
+    // --- how big to draw it -----------------------------------------------
+    // Galaxies, nebulae and other stars have no radius in this dataset — their
+    // size is not the point at the scales they appear on — but they should not
+    // be three-pixel dots either. They get the same prominence curve as the
+    // planets, weighted by a curated visual rank instead of a physical one.
+    if (object.radiusKm === undefined && object.symbolRank !== undefined) {
+      const prominence = Math.min(1, Math.max(0, fraction / SYMBOL_FULL_AT));
+      entry.symbolPx = SYMBOL_MAX * unit * object.symbolRank * prominence ** SYMBOL_DECAY;
+    }
+
     if (object.radiusKm !== undefined) {
       const truePx = (object.radiusKm / scaleKm) * unit;
       if (truePx >= MIN_MARKER_PX) entry.discRadiusPx = truePx;

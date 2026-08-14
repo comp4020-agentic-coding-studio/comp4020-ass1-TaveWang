@@ -9,7 +9,7 @@ import {
   percentOf,
 } from "../src/lib/camera";
 import { OBJECTS, SCALE_LEVELS, allSources, levelAt, objectById } from "../src/data/cosmos";
-import { labelBounds, layout, sizeRank } from "../src/lib/layout";
+import { PHOTO_MIN_PX, labelBounds, layout, sizeRank } from "../src/lib/layout";
 import { aphelion, magnitude, orbitPath, perihelion, positionAtEpoch } from "../src/lib/orbits";
 import { AU_KM, LY_KM, crossesInterstellar, format, unitFor } from "../src/lib/units";
 
@@ -497,5 +497,35 @@ describe("how big things are drawn", () => {
     const cy = STAGE[1] / 2;
     const radii = mercury!.orbit!.map((p) => Math.hypot(p.x - cx, p.y - cy));
     expect(Math.max(...radii) / Math.min(...radii)).toBeGreaterThan(1.3);
+  });
+});
+
+describe("nothing worth showing is drawn as a bare dot", () => {
+  it("draws every photographed object large enough to show its photograph", () => {
+    // The complaint this answers: most objects outside the Solar System were
+    // three-pixel dots, so their photographs would never have been visible.
+    for (const object of OBJECTS) {
+      if (!object.photo) continue;
+      let best = 0;
+      for (let logR = MIN_LOG_R; logR <= MAX_LOG_R; logR += 0.05) {
+        const entry = layout(logR, 1400, 760).placed.find((p) => p.object.id === object.id);
+        best = Math.max(best, entry?.symbolPx ?? 0);
+      }
+      expect(
+        best,
+        `${object.name} never gets bigger than ${best.toFixed(1)}px, so its photograph is never visible`,
+      ).toBeGreaterThanOrEqual(PHOTO_MIN_PX);
+    }
+  });
+
+  it("gives every non-structure object either a radius or a symbol rank", () => {
+    for (const object of OBJECTS) {
+      if (object.structureRadiusKm !== undefined) continue;
+      if (object.category === "region" || object.category === "horizon") continue;
+      expect(
+        object.radiusKm !== undefined || object.symbolRank !== undefined,
+        `${object.name} would be drawn as a bare dot — give it a radius or a symbolRank`,
+      ).toBe(true);
+    }
   });
 });

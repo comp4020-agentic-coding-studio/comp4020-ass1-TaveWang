@@ -270,6 +270,20 @@ on the map after all — the constraint was never "no photos on planets", it was
 at the same time, because with the body itself photographed they rendered every
 planet twice, a few pixels apart.)
 
+**Nothing worth naming is drawn as a bare dot.** Objects with no `radiusKm` —
+galaxies, nebulae, clusters, other stars — carry a curated `symbolRank` instead,
+and go through the same prominence curve as the planets. Before that they were
+three-pixel dots, so any photograph attached to them would never have been
+visible. `spec/dataset.test.ts` asserts that every photographed object reaches
+at least `PHOTO_MIN_PX` somewhere in its life; if you add an object with a
+photo and no rank, that test fails rather than shipping an invisible picture.
+
+**Never ship an illustration where a photograph is implied.** The best-looking
+Galactic Centre image in NASA's library is credited to an ESA staff
+illustrator — an artist's concept. It was dropped rather than cropped, and the
+object's `uncertaintyNote` says why. Check the credit line before the image:
+"NASA/JPL-Caltech" is an observation, a personal name usually is not.
+
 **Orbits come from elements, not from angles.** `src/lib/orbits.ts` implements
 JPL's own algorithm over their J2000 Keplerian table, so orbits are true
 ellipses with the Sun at a focus, on their real inclined planes, with each

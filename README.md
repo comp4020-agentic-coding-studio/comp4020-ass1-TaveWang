@@ -79,9 +79,10 @@ out loud, in the **Method & scale** disclosure and in each object's details:
 
 ## Photographs
 
-Nine real NASA photographs — the Sun and all eight planets — each cropped to a
-square and stored under `public/images/objects/` (272 KB for the set). They
-appear in two places:
+Seventeen real NASA photographs — the Sun, all eight planets, both Magellanic
+Clouds, Andromeda, Triangulum, the Virgo Cluster, the Helix Nebula, Tycho's
+supernova remnant and Alpha Centauri — each cropped square and stored under
+`public/images/objects/` (about 750 KB for the set). They appear in two places:
 
 - **On the map**, textured onto each body's symbol once that symbol is more
   than about seven pixels across. The Sun's is scaled so the *photosphere*
@@ -91,10 +92,16 @@ appear in two places:
 - **In every details panel**, at a readable size with its credit and the date
   it was read.
 
-Because a planet's symbol is sized by prominence rather than by its real size,
-putting a photograph on it makes the encoding more legible, not less — you can
-see *which* world it is — but it makes the size disclosure load-bearing. The
-**Method & scale** section states it in full.
+Because a symbol is sized by prominence rather than by real size, putting a
+photograph on it makes the encoding more legible, not less — you can see *which*
+object it is — but it makes the size disclosure load-bearing. The **Method &
+scale** section states it in full.
+
+Several of the deep-sky images are infrared or ultraviolet — WISE, Spitzer,
+GALEX — which is how those objects were actually observed. Each alt text says
+so. The Galactic Centre is the one named object with no photograph: the best
+candidate turned out to be an artist's impression, and an illustration
+presented as an observation is worse than no picture at all.
 
 ## Data
 

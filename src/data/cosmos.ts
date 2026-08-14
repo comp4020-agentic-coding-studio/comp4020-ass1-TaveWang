@@ -85,6 +85,13 @@ export interface CosmicObject {
   visualStyleKey: string;
   photo?: Photo;
   /**
+   * Visual weight for objects that have no `radiusKm` — galaxies, nebulae,
+   * clusters, other stars. Plays the part `sizeRank(radiusKm)` plays for
+   * bodies: it sets how large the symbol can get, so a galaxy is not drawn as
+   * a three-pixel dot at the scale where it is the whole point.
+   */
+  symbolRank?: number;
+  /**
    * Full Keplerian elements, for the bodies that have a real orbit to draw.
    * When present, the object's drawn position and orbit path come from these
    * rather than from `angleDeg` — a true ellipse with the Sun at a focus, at
@@ -508,6 +515,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 2,
     angleDeg: 70,
     visualStyleKey: "star",
+    symbolRank: 0.5,
     shortDescription:
       "The closest star to the Sun, 4.24 light-years away. By the time it appears here, the entire Solar System has shrunk to a dot.",
     source: NASA_SUN,
@@ -523,6 +531,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 88,
     visualStyleKey: "star",
+    symbolRank: 0.5,
+    photo: {
+      file: "alpha-centauri.jpg",
+      alt: "Alpha Centauri A and B photographed by Hubble as two brilliant white points, each flaring into a four-pointed diffraction cross.",
+      credit: "NASA/ESA Hubble Space Telescope",
+      url: "https://images.nasa.gov/details/GSFC_20171208_Archive_e000214",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.8,
+    },
     shortDescription:
       "A pair of Sun-like stars 4.37 light-years out, bound together with Proxima in one system.",
     source: NASA_SUN,
@@ -536,6 +553,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 5,
     angleDeg: 235,
     visualStyleKey: "nebula",
+    symbolRank: 0.6,
+    photo: {
+      file: "helix-nebula.jpg",
+      alt: "The Helix Nebula in infrared: a pale blue-white ring of cast-off gas around the dying star at its centre, set in a dense field of stars.",
+      credit: "NASA/JPL-Caltech (Spitzer Space Telescope)",
+      url: "https://images.nasa.gov/details/PIA15658",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.38,
+    },
     shortDescription:
       "The cast-off outer layers of a dying Sun-like star, 650 light-years away — one plausible picture of this Sun's own distant future.",
     source: NASA_STARS,
@@ -549,6 +575,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 5,
     angleDeg: 15,
     visualStyleKey: "nebula",
+    symbolRank: 0.62,
+    photo: {
+      file: "tycho-remnant.jpg",
+      alt: "Tycho's supernova remnant as a near-perfect expanding bubble, its shell rendered in green and yellow with a blue-violet rim, from combined X-ray and infrared observations.",
+      credit: "MPIA/NASA/Calar Alto Observatory",
+      url: "https://images.nasa.gov/details/PIA11435",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.62,
+    },
     shortDescription:
       "The wreckage of a star seen to explode in 1572, about 13,000 light-years away and still expanding.",
     source: NASA_STARS,
@@ -564,11 +599,12 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 2,
     angleDeg: 180,
     visualStyleKey: "core",
+    symbolRank: 0.55,
     shortDescription:
       "The middle of the Milky Way, about 25,000 light-years from here. The Sun has never been anywhere near it.",
     source: NASA_MILKY_WAY,
     uncertaintyNote:
-      "Published estimates of the Sun's distance from the Galactic Centre range from roughly 25,000 to 27,000 light-years depending on the method used.",
+      "Published estimates of the Sun's distance from the Galactic Centre range from roughly 25,000 to 27,000 light-years depending on the method used. It is the one object here with no photograph: the best-looking candidate turned out to be an artist's impression, and an illustration presented as an observation is worse than no picture at all.",
     positionIsDiagrammatic: true,
   },
   {
@@ -597,6 +633,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 4,
     angleDeg: 300,
     visualStyleKey: "galaxy",
+    symbolRank: 0.75,
+    photo: {
+      file: "lmc.jpg",
+      alt: "The Large Magellanic Cloud in infrared, a broad irregular sprawl of dust and star-forming regions filling the frame.",
+      credit: "NASA/JPL-Caltech/STScI (Spitzer Space Telescope)",
+      url: "https://images.nasa.gov/details/PIA07137",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.85,
+    },
     shortDescription: "A satellite galaxy of the Milky Way, 179,000 light-years away and visible to the unaided eye from the southern hemisphere.",
     source: NASA_NEAREST_GALAXIES,
     positionIsDiagrammatic: true,
@@ -609,6 +654,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 5,
     angleDeg: 330,
     visualStyleKey: "galaxy",
+    symbolRank: 0.68,
+    photo: {
+      file: "smc.jpg",
+      alt: "The Small Magellanic Cloud in infrared, a wispy elongated cloud of dust and young stars.",
+      credit: "NASA/JPL-Caltech/UCLA (WISE)",
+      url: "https://images.nasa.gov/details/PIA13124",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.72,
+    },
     shortDescription: "The Large Cloud's smaller companion, 210,000 light-years out.",
     source: NASA_NEAREST_GALAXIES,
     positionIsDiagrammatic: true,
@@ -623,6 +677,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 2,
     angleDeg: 45,
     visualStyleKey: "galaxy",
+    symbolRank: 0.8,
+    photo: {
+      file: "andromeda.jpg",
+      alt: "The Andromeda Galaxy in ultraviolet, its spiral arms picked out as blue-white rings of hot young stars around a golden core, seen at a steep angle.",
+      credit: "NASA/JPL-Caltech (GALEX)",
+      url: "https://images.nasa.gov/details/PIA15416",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.7,
+    },
     shortDescription:
       "The nearest large spiral galaxy, 2.5 million light-years away — and the most distant thing a human eye can see unaided.",
     source: NASA_M31,
@@ -638,6 +701,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 4,
     angleDeg: 75,
     visualStyleKey: "galaxy",
+    symbolRank: 0.72,
+    photo: {
+      file: "triangulum.jpg",
+      alt: "The Triangulum Galaxy in infrared, a loose blue spiral of star-forming regions seen close to face-on.",
+      credit: "NASA/JPL-Caltech/UCLA (WISE)",
+      url: "https://images.nasa.gov/details/PIA13452",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 0.62,
+    },
     shortDescription: "The Local Group's third-largest member, about 3 million light-years away and roughly half the Milky Way's size.",
     source: NASA_M33,
     uncertaintyNote: "NASA rounds this to about 3 million light-years; other published measurements cluster nearer 2.7 million.",
@@ -671,6 +743,15 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 130,
     visualStyleKey: "cluster",
+    symbolRank: 0.8,
+    photo: {
+      file: "virgo-cluster.jpg",
+      alt: "A field in the Virgo Cluster: dozens of galaxies — spirals seen edge-on and face-on, and fuzzy ellipticals — scattered across one infrared frame.",
+      credit: "NASA/JPL-Caltech/SSC (Spitzer Space Telescope)",
+      url: "https://images.nasa.gov/details/PIA07906",
+      accessed: NASA_PHOTO_ACCESSED,
+      discFraction: 1.0,
+    },
     shortDescription:
       "About 2,000 galaxies packed together 65 million light-years away — the nearest place the universe gets genuinely crowded.",
     source: NASA_SUPERCLUSTER,
