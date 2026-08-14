@@ -9,9 +9,11 @@ single semantic scalar — `logR`, the log of the visible radius in kilometres �
 so zooming is logarithmic while the picture never is: within one frame,
 distances are drawn strictly to scale. That is what makes the inner planets
 genuinely bunch toward the middle as you retreat, rather than being animated
-into doing so. The counterpart is that the page has to be loud about what it
-*isn't*: bearings are chosen for legibility, marker sizes mean nothing
-physical, and the Solar System's edge depends on which definition you pick.
+into doing so. Planet orbits are computed from JPL's J2000 elements, so they are true
+ellipses with the Sun at a focus, on real inclined planes. The counterpart is
+that the page has to be loud about what it *isn't*: symbol sizes encode
+prominence, not size; bearings beyond the planets are chosen for legibility;
+and the Solar System's edge depends on which definition you pick.
 
 This replaced an earlier prototype in the same repo — a deliberate call, since
 the brief asks for one strong idea and nothing else. The old one is preserved

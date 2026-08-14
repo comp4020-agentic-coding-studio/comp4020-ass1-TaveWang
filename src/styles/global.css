@@ -110,15 +110,20 @@ summary:focus-visible,
 
 /* --- the model ----------------------------------------------------------- */
 
-.explorer__stage {
-  /* Constrained rather than full-bleed: the visible radius is half the SHORT
-     side, so on a 1920px-wide band the circle it names occupied a third of the
-     stage and the rest was dead black. A plate the model actually fills makes
-     the readout legible as a claim about what you can see. */
+/* The plate is the page's centre of gravity — the model, and the readout that
+   says what scale it is. On wide screens the readout sits inside it, so making
+   the stage large does not push the one number that carries the whole idea
+   below the fold. */
+.explorer__plate {
   position: relative;
-  width: min(100%, 54rem);
+  width: min(100%, 78rem);
   margin-inline: auto;
-  height: clamp(320px, 62vh, 720px);
+}
+
+.explorer__stage {
+  position: relative;
+  width: 100%;
+  height: clamp(400px, 76vh, 900px);
   overflow: hidden;
   border-block: 1px solid var(--line);
   background: radial-gradient(circle at 50% 50%, #0a0d16 0%, #04050a 70%);
@@ -160,19 +165,6 @@ summary:focus-visible,
   text-align: left;
   cursor: pointer;
   pointer-events: auto;
-}
-
-/* A real NASA photograph beside the name. Deliberately small and clearly part
-   of the label rather than of the map: the marker on the canvas stays a dot,
-   because a photo drawn at the object's position would read as a claim about
-   its size. */
-.label__thumb {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #000;
 }
 
 .label__text {
@@ -561,6 +553,28 @@ summary:focus-visible,
   font-size: 0.78rem;
 }
 
+@media (width >= 900px) {
+  .readout {
+    position: absolute;
+    bottom: 1.4rem;
+    left: 1.6rem;
+    z-index: 2;
+    max-width: 24rem;
+    margin: 0;
+    padding: 0;
+    text-shadow: 0 1px 10px rgb(5 6 10 / 95%);
+    pointer-events: none;
+  }
+
+  .explorer__hint {
+    right: 1.6rem;
+    bottom: 1.4rem;
+    left: auto;
+    max-width: 18rem;
+    text-align: right;
+  }
+}
+
 /* --- phone --------------------------------------------------------------- */
 
 @media (width <= 600px) {
@@ -583,10 +597,6 @@ summary:focus-visible,
     display: none;
   }
 
-  .label__thumb {
-    width: 18px;
-    height: 18px;
-  }
 }
 
 /* --- reduced motion ------------------------------------------------------ */

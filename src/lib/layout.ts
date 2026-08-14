@@ -1,16 +1,18 @@
 import type { CosmicObject } from "../data/cosmos";
 import { OBJECTS } from "../data/cosmos";
 import { MIN_MARKER_PX, fractionAt } from "./camera";
+import { orbitPath, positionAtEpoch } from "./orbits";
+import { AU_KM } from "./units";
 
 /*
  * Turns a camera scale and a viewport size into everything the page has to
- * draw. Pure — no canvas, no DOM, no React — so the visibility rules and the
- * label collision pass can be tested directly rather than inferred from a
- * screenshot.
+ * draw. Pure — no canvas, no DOM, no React — so the visibility rules, the
+ * symbol sizes and the label collision pass can all be tested directly rather
+ * than inferred from a screenshot.
  *
  * Visibility is derived entirely from distance and camera scale. There is no
- * step counter, no scroll index, and no hand-authored "appears at stage 4"
- * anywhere: an object is on screen when the arithmetic puts it on screen.
+ * step counter and no hand-authored "appears at stage 4": an object is on
+ * screen when the arithmetic puts it on screen.
  */
 
 /** Beyond this fraction of the visible radius, a point object is off screen. */
@@ -35,20 +37,60 @@ const LABEL_MIN = 0.045;
 /** …and not hanging off the edge. */
 const LABEL_MAX = 0.9;
 
-/**
- * Where a label sits relative to its object. Tried in order, first fit wins.
- * Without this the Sun's label — always dead centre, always highest priority —
- * blocks whatever is drawn near the middle, which at galactic scale meant the
- * Milky Way itself going unlabelled inside the band named after it.
+/*
+ * --- The tilt -------------------------------------------------------------
+ *
+ * The planets share a plane, so the planetary system is drawn as that plane
+ * seen at an angle: y is foreshortened, and a body's height out of the plane
+ * shows as a vertical offset. That is what makes real inclinations visible —
+ * Mercury's 7° genuinely lifts its orbit off Earth's.
+ *
+ * It applies to the planets and the Kuiper belt and to nothing else. The
+ * heliopause, the Oort Cloud and the observable-universe horizon are shells,
+ * not discs, and a sphere's outline is a circle from every angle — drawing
+ * those tilted would be a nicer picture and a worse claim.
  */
-const PLACEMENTS = [
-  { side: "right", dx: 10, dy: -9 },
-  { side: "right", dx: 10, dy: 15 },
-  { side: "left", dx: -10, dy: -9 },
-  { side: "left", dx: -10, dy: 15 },
-] as const;
+export const TILT_Y = 0.46;
+const TILT_Z = 0.86;
 
-export type LabelSide = (typeof PLACEMENTS)[number]["side"];
+/*
+ * --- Symbol sizes ---------------------------------------------------------
+ *
+ * No planet is ever within a thousand times of being drawable at its true
+ * size: Earth's true radius never exceeds a fiftieth of a pixel anywhere in
+ * this zoom range. So a planet is drawn as a SYMBOL, and the symbol encodes
+ * prominence — how recently the object arrived in the frame — rather than
+ * size. A body just entering at the rim is drawn large; as the camera pulls
+ * back and it is dragged toward the centre, it shrinks, and eventually it
+ * merges into the point at the middle.
+ *
+ * Size rank is folded in so that bodies which arrive together — Uranus and
+ * Neptune, or Venus and Earth and Mars — are still ordered correctly against
+ * each other, which is when a reader is most likely to compare them. Across
+ * very different prominences the ordering does NOT hold, and the page says so
+ * in as many words rather than pretending otherwise.
+ *
+ * The Sun is exempt: it is the subject of the map, it is drawn at its true
+ * size for as long as that is more than a few pixels, and after that it stops
+ * being a body at all and becomes a "you are here" pin.
+ */
+const SYMBOL_MAX = 0.095;
+const SYMBOL_FULL_AT = 0.85;
+/** Sub-linear decay, so a settled body keeps some presence instead of vanishing. */
+const SYMBOL_DECAY = 0.6;
+/** Below this a symbol is not worth texturing with a photograph. */
+export const PHOTO_MIN_PX = 7;
+
+const SMALLEST_BODY_KM = 2439.4;
+const LARGEST_BODY_KM = 700_000;
+
+/** 0.40 (Mercury) … 1.00 (the Sun), on a log scale. */
+export function sizeRank(radiusKm: number): number {
+  const lo = Math.log10(SMALLEST_BODY_KM);
+  const hi = Math.log10(LARGEST_BODY_KM);
+  const t = (Math.log10(radiusKm) - lo) / (hi - lo);
+  return 0.4 + 0.6 * Math.min(1, Math.max(0, t));
+}
 
 export interface Placed {
   object: CosmicObject;
@@ -61,10 +103,13 @@ export interface Placed {
   ringRadiusPx?: number;
   /**
    * Set only when the body is big enough on screen to be drawn at its true
-   * angular size. When absent the object is a marker, and a marker's size
-   * means nothing physical — which the page says out loud.
+   * angular size. In practice this is the Sun and nothing else.
    */
   discRadiusPx?: number;
+  /** Radius the body is actually drawn at — true size for the Sun, symbol otherwise. */
+  symbolPx?: number;
+  /** The planet's real elliptical orbit, already projected to screen points. */
+  orbit?: Array<{ x: number; y: number }>;
   /** Set for structures drawn as a circle centred somewhere other than the Sun. */
   structure?: { cx: number; cy: number; r: number };
   labelX: number;
@@ -81,6 +126,21 @@ export interface Layout {
   sunIsMarker: boolean;
   sunRadiusPx: number;
 }
+
+/**
+ * Where a label sits relative to its object. Tried in order, first fit wins.
+ * Without this the Sun's label — always dead centre, always highest priority —
+ * blocks whatever is drawn near the middle, which at galactic scale meant the
+ * Milky Way itself going unlabelled inside the band named after it.
+ */
+const PLACEMENTS = [
+  { side: "right", dx: 10, dy: -9 },
+  { side: "right", dx: 10, dy: 15 },
+  { side: "left", dx: -10, dy: -9 },
+  { side: "left", dx: -10, dy: 15 },
+] as const;
+
+export type LabelSide = (typeof PLACEMENTS)[number]["side"];
 
 function radians(degrees: number): number {
   return (degrees * Math.PI) / 180;
@@ -159,14 +219,22 @@ export function layout(
 ): Layout {
   const cx = width / 2;
   const cy = height / 2;
-  // The visible radius is half the SHORTER side, so the circle it describes is
-  // always fully on screen. Using the longer side would make the readout a
-  // claim about a distance the reader cannot actually see.
+  // The visible radius is half the SHORTER side, measured along the map's
+  // un-foreshortened horizontal axis, so the circle it describes is always
+  // fully on screen.
   const unit = Math.min(width, height) / 2;
+  const scaleKm = 10 ** logR;
+
+  /** Ecliptic au → screen pixels, through the tilt. */
+  const project = (auX: number, auY: number, auZ: number) => {
+    const fx = (auX * AU_KM) / scaleKm;
+    const fy = (auY * AU_KM) / scaleKm;
+    const fz = (auZ * AU_KM) / scaleKm;
+    return { x: cx + fx * unit, y: cy + (fy * TILT_Y - fz * TILT_Z) * unit };
+  };
 
   const sunObject = OBJECTS[0];
-  const sunRadiusPx = ((sunObject.radiusKm ?? 0) / 10 ** logR) * unit;
-  const sunIsMarker = sunRadiusPx < MIN_MARKER_PX;
+  const sunTruePx = ((sunObject.radiusKm ?? 0) / scaleKm) * unit;
 
   const placed: Placed[] = [];
 
@@ -186,31 +254,53 @@ export function layout(
     if (object.id !== "sun") {
       if (adjusted > limit) continue;
       if (fraction < CORE && !surrounds) continue;
-      if (isStructure && (object.structureRadiusKm ?? 0) / 10 ** logR < CORE) continue;
+      if (isStructure && (object.structureRadiusKm ?? 0) / scaleKm < CORE) continue;
     }
 
     const angle = radians(object.angleDeg);
-    const x = cx + Math.cos(angle) * fraction * unit;
-    const y = cy + Math.sin(angle) * fraction * unit;
+    let x = cx + Math.cos(angle) * fraction * unit;
+    let y = cy + Math.sin(angle) * fraction * unit;
 
     const entry: Placed = { object, fraction, x, y, labelX: x, labelY: y, labelSide: "right" };
+
+    // --- planets: real position, real ellipse, real inclination ------------
+    if (object.elements) {
+      const at = positionAtEpoch(object.elements);
+      const screen = project(at.x, at.y, at.z);
+      x = screen.x;
+      y = screen.y;
+      entry.x = x;
+      entry.y = y;
+      entry.orbit = orbitPath(object.elements, 128).map((point) =>
+        project(point.x, point.y, point.z),
+      );
+    } else if (object.ring) {
+      entry.ringRadiusPx = fraction * unit;
+    }
 
     if (object.id === "sun") {
       // Never on top of the Sun itself. Above the disc while it is large,
       // because below it is where the opening instruction sits; below the
       // marker once the Sun is small, so it reads as a caption on the
       // "you are here" crosshair.
-      entry.y =
-        sunRadiusPx > 40
-          ? cy - sunRadiusPx - 13
-          : cy + Math.max(sunRadiusPx, MIN_MARKER_PX * 3) + 6;
+      entry.y = cy - sunTruePx - 13;
+      entry.labelY = entry.y;
     }
 
-    if (object.ring) entry.ringRadiusPx = fraction * unit;
-
+    // --- how big to draw the body -----------------------------------------
     if (object.radiusKm !== undefined) {
-      const truePx = (object.radiusKm / 10 ** logR) * unit;
+      const truePx = (object.radiusKm / scaleKm) * unit;
       if (truePx >= MIN_MARKER_PX) entry.discRadiusPx = truePx;
+
+      if (object.id === "sun") {
+        // Filled in below, once every planet symbol is known.
+        entry.symbolPx = entry.discRadiusPx;
+      } else {
+        const prominence = Math.min(1, Math.max(0, fraction / SYMBOL_FULL_AT));
+        const symbol =
+          SYMBOL_MAX * unit * sizeRank(object.radiusKm) * prominence ** SYMBOL_DECAY;
+        entry.symbolPx = Math.max(truePx, symbol);
+      }
     }
 
     if (isStructure) {
@@ -233,6 +323,31 @@ export function layout(
 
     placed.push(entry);
   }
+
+  // --- The Sun's size, last, because it depends on everything else ---------
+  //
+  // The Sun is drawn at its true size for as long as that is more than a few
+  // pixels. After that it would become a sub-pixel dot while the planets are
+  // still large symbols, which reads as the Sun being smaller than Mercury. So
+  // while any planet is on screen the Sun is drawn a clear step larger than the
+  // largest of them — the one size relationship on this map that is never in
+  // doubt. Once the planets collapse into the centre the floor goes with them
+  // and the Sun becomes a "you are here" pin.
+  const sunEntry = placed.find((entry) => entry.object.id === "sun");
+  let sunDrawnPx = sunEntry?.discRadiusPx ?? 0;
+  if (sunEntry) {
+    const largestPlanet = placed.reduce(
+      (max, entry) => (entry.object.elements ? Math.max(max, entry.symbolPx ?? 0) : max),
+      0,
+    );
+    sunDrawnPx = Math.max(sunDrawnPx, largestPlanet * 1.15);
+    sunEntry.symbolPx = sunDrawnPx;
+    if (sunDrawnPx >= MIN_MARKER_PX) {
+      // Re-anchor the label against whatever the Sun ended up drawn as.
+      sunEntry.y = sunDrawnPx > 40 ? cy - sunDrawnPx - 13 : cy + sunDrawnPx + 12;
+    }
+  }
+  const sunIsPin = sunDrawnPx < MIN_MARKER_PX;
 
   // --- Labels -------------------------------------------------------------
   // Deterministic priority, then distance. Never random, never frame-dependent:
@@ -258,18 +373,14 @@ export function layout(
 
   for (const entry of candidates) {
     if (labelled.length >= maxLabels) break;
+    // Clear the body itself, so a big symbol never sits under its own label.
+    // The Sun is exempt: its anchor is already offset above or below the disc,
+    // and a clearance the width of that disc would fling the label off sideways.
+    const clearance = entry.object.id === "sun" ? 10 : (entry.symbolPx ?? 0) + 8;
     for (const placement of PLACEMENTS) {
-      const x = entry.x + placement.dx;
+      const x = entry.x + (placement.dx > 0 ? clearance : -clearance);
       const y = entry.y + placement.dy;
-      const box = labelBox(
-        entry.object.name,
-        x,
-        y,
-        charWidth,
-        placement.side,
-        gap,
-        isWide(entry),
-      );
+      const box = labelBox(entry.object.name, x, y, charWidth, placement.side, gap, isWide(entry));
       if (box.left < 4 || box.right > width - 4 || box.top < 4 || box.bottom > height - 4) {
         continue;
       }
@@ -280,7 +391,7 @@ export function layout(
     }
   }
 
-  return { placed, labelled, sunIsMarker, sunRadiusPx };
+  return { placed, labelled, sunIsMarker: sunIsPin, sunRadiusPx: sunDrawnPx };
 }
 
 /**

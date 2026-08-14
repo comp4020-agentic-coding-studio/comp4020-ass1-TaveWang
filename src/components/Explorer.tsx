@@ -12,8 +12,9 @@ import {
   radiusKm,
 } from "../lib/camera";
 import { OBJECTS, levelAt, objectById } from "../data/cosmos";
-import { layout } from "../lib/layout";
-import { LY_KM, format } from "../lib/units";
+import { PHOTO_MIN_PX, TILT_Y, layout } from "../lib/layout";
+import { aphelion, perihelion } from "../lib/orbits";
+import { AU_KM, LY_KM, format } from "../lib/units";
 
 /*
  * One island, deliberately. Camera scale and selection are the only live state
@@ -108,8 +109,8 @@ export default function Explorer() {
   // the only one whose photograph goes on the canvas. Everything else is a
   // marker, and a marker textured with a photo would read as a claim about
   // size that this page spends its time denying.
-  const sunPhotoRef = useRef<HTMLImageElement | null>(null);
-  const [sunPhotoLoaded, setSunPhotoLoaded] = useState(false);
+  const photosRef = useRef(new Map<string, HTMLImageElement>());
+  const [photosLoaded, setPhotosLoaded] = useState(0);
 
   const maxLabels = size.width < 600 ? 5 : 12;
   const view = layout(logR, size.width, size.height, maxLabels);
@@ -160,16 +161,17 @@ export default function Explorer() {
   }, []);
 
   useEffect(() => {
-    const photo = objectById("sun")?.photo;
-    if (!photo) return;
-    const image = new Image();
-    image.decoding = "async";
-    // Relative, never root-relative: this has to resolve under the Pages subpath.
-    image.src = `./images/objects/${photo.file}`;
-    image.onload = () => {
-      sunPhotoRef.current = image;
-      setSunPhotoLoaded(true);
-    };
+    for (const object of OBJECTS) {
+      if (!object.photo) continue;
+      const image = new Image();
+      image.decoding = "async";
+      // Relative, never root-relative: these must resolve under the Pages subpath.
+      image.src = `./images/objects/${object.photo.file}`;
+      image.onload = () => {
+        photosRef.current.set(object.id, image);
+        setPhotosLoaded((count) => count + 1);
+      };
+    }
   }, []);
 
   useEffect(() => {
@@ -341,7 +343,9 @@ export default function Explorer() {
       context.stroke();
     }
 
-    // Rings: orbits and region boundaries.
+    // Shell boundaries: circles, because a sphere's outline is a circle from
+    // every angle. The Kuiper belt is a disc, so it gets the same tilt as the
+    // planets instead.
     for (const item of view.placed) {
       if (item.ringRadiusPx === undefined || item.ringRadiusPx < 2) continue;
       const isBoundary = item.object.category === "region" || item.object.category === "horizon";
@@ -349,26 +353,62 @@ export default function Explorer() {
       context.lineWidth = 1;
       context.setLineDash(isBoundary ? [4, 5] : []);
       context.beginPath();
-      context.arc(cx, cy, item.ringRadiusPx, 0, Math.PI * 2);
+      if (item.object.planar) {
+        context.ellipse(cx, cy, item.ringRadiusPx, item.ringRadiusPx * TILT_Y, 0, 0, Math.PI * 2);
+      } else {
+        context.arc(cx, cy, item.ringRadiusPx, 0, Math.PI * 2);
+      }
       context.stroke();
       context.setLineDash([]);
     }
 
-    // Bodies and markers.
+    // Real orbits: true ellipses with the Sun at a focus, on their own
+    // inclined planes, already projected in src/lib/layout.ts.
     for (const item of view.placed) {
-      if (item.object.id === "sun" || item.structure) continue;
-      const colour = FILL[item.object.visualStyleKey] ?? "#dcdcdc";
-      const selectedHere = item.object.id === selectedId;
-      const r = item.discRadiusPx ?? 3;
-      context.fillStyle = colour;
+      if (!item.orbit || item.orbit.length < 2) continue;
+      context.strokeStyle =
+        item.object.id === selectedId ? "rgb(255 255 255 / 45%)" : "rgb(255 255 255 / 17%)";
+      context.lineWidth = 1;
       context.beginPath();
-      context.arc(item.x, item.y, Math.max(r, 1.5), 0, Math.PI * 2);
-      context.fill();
-      if (selectedHere) {
+      for (const [index, point] of item.orbit.entries()) {
+        if (index === 0) context.moveTo(point.x, point.y);
+        else context.lineTo(point.x, point.y);
+      }
+      context.stroke();
+    }
+
+    // Bodies. A planet is drawn as a symbol whose size is its prominence at
+    // this scale, never its physical size — see the Method note on the page.
+    // Draw smallest-first so a larger neighbour is never hidden behind one.
+    const bodies = view.placed
+      .filter((item) => item.object.id !== "sun" && !item.structure)
+      .sort((a, b) => (a.symbolPx ?? 0) - (b.symbolPx ?? 0));
+
+    for (const item of bodies) {
+      const r = Math.max(item.symbolPx ?? 3, 1.5);
+      const photo = photosRef.current.get(item.object.id);
+      const discFraction = item.object.photo?.discFraction ?? 1;
+
+      if (photo && r >= PHOTO_MIN_PX) {
+        const drawn = (r * 2) / discFraction;
+        context.save();
+        context.beginPath();
+        context.arc(item.x, item.y, r, 0, Math.PI * 2);
+        context.clip();
+        context.drawImage(photo, item.x - drawn / 2, item.y - drawn / 2, drawn, drawn);
+        context.restore();
+      } else {
+        context.fillStyle = FILL[item.object.visualStyleKey] ?? "#dcdcdc";
+        context.beginPath();
+        context.arc(item.x, item.y, r, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      if (item.object.id === selectedId) {
         context.strokeStyle = "#ffffff";
         context.lineWidth = 1.5;
         context.beginPath();
-        context.arc(item.x, item.y, Math.max(r, 1.5) + 6, 0, Math.PI * 2);
+        context.arc(item.x, item.y, r + 6, 0, Math.PI * 2);
         context.stroke();
       }
     }
@@ -399,7 +439,7 @@ export default function Explorer() {
       context.beginPath();
       context.arc(cx, cy, view.sunRadiusPx * 2.2, 0, Math.PI * 2);
       context.fill();
-      const photo = sunPhotoRef.current;
+      const photo = photosRef.current.get("sun");
       const discFraction = objectById("sun")?.photo?.discFraction ?? 1;
       if (photo) {
         // Scale so the PHOTOSPHERE matches the computed radius — the image
@@ -425,7 +465,7 @@ export default function Explorer() {
         context.fill();
       }
     }
-  }, [logR, size, view, selectedId, sunPhotoLoaded]);
+  }, [logR, size, view, selectedId, photosLoaded]);
 
   /* --- scale bar -------------------------------------------------------- */
   const barPx = size.width < 600 ? 90 : 130;
@@ -436,6 +476,7 @@ export default function Explorer() {
 
   return (
     <div className="explorer">
+      <div className="explorer__plate">
       <div
         className="explorer__stage"
         ref={stageRef}
@@ -463,16 +504,6 @@ export default function Explorer() {
                 aria-pressed={item.object.id === selectedId}
                 onClick={(event) => select(item.object.id, event.currentTarget)}
               >
-                {item.object.photo && (
-                  <img
-                    className="label__thumb"
-                    src={`./images/objects/${item.object.photo.file}`}
-                    alt=""
-                    width="24"
-                    height="24"
-                    loading="lazy"
-                  />
-                )}
                 <span className="label__text">
                   <span className="label__name">{item.object.name}</span>
                   <span
@@ -520,6 +551,7 @@ export default function Explorer() {
             {barReading.secondary ? ` · ${barReading.secondary}` : ""}
           </span>
         </div>
+      </div>
       </div>
 
       {showUnitNotice && (
@@ -640,6 +672,19 @@ export default function Explorer() {
                 <dd>{format(selected.radiusKm).primary}</dd>
               </>
             )}
+            {selected.elements && (
+              <>
+                <dt>Orbit</dt>
+                <dd>
+                  Eccentricity {selected.elements.e.toFixed(3)} — closest{" "}
+                  {format(perihelion(selected.elements) * AU_KM).primary}, furthest{" "}
+                  {format(aphelion(selected.elements) * AU_KM).primary}.{" "}
+                  {Math.abs(selected.elements.I) < 0.01
+                    ? "This is the plane the others are measured against."
+                    : `Inclined ${Math.abs(selected.elements.I).toFixed(1)}° to Earth's orbital plane.`}
+                </dd>
+              </>
+            )}
           </dl>
 
           <p className="panel__description">{selected.shortDescription}</p>
@@ -674,32 +719,47 @@ export default function Explorer() {
       <details className="method">
         <summary>Method &amp; scale</summary>
         <p>
-          Zooming is logarithmic: each step outward covers vastly more space
-          than the last. Within any one view, distances from the Sun are drawn
-          strictly to scale — but objects are not. Anything smaller than a few
-          pixels is drawn as a marker of fixed size, so a dot's size never
-          means anything physical. The Sun becomes a “you are here” marker at
-          the point where drawing it to scale would make it invisible.
+          <strong>Zooming is logarithmic; the picture is not.</strong> Each step
+          outward covers vastly more space than the last, but within any single
+          view, distances from the Sun are drawn strictly to scale. What is on
+          screen at any instant is a true-to-scale distance map.
         </p>
         <p>
-          Every named body here has a real NASA photograph, but only the Sun's
-          is drawn on the map. It is the one object whose true angular size ever
-          exceeds a few pixels, and its photograph is scaled so the photosphere
-          lands exactly on the computed radius. Every planet stays smaller than
-          a single pixel at every scale this page reaches — Earth never exceeds
-          a fiftieth of one — so a photograph placed at a planet's position
-          would be a claim about its size, and a false one. Those photographs
-          live in the labels and in each object's details instead, where they
-          can show what a world looks like without implying how big it is.
+          <strong>Bodies are drawn as symbols, not at their true size.</strong>{" "}
+          No planet ever comes close to being drawable to scale here — Earth's
+          true radius never exceeds a fiftieth of a pixel at any scale this page
+          reaches. So a body's symbol shows how <em>prominent</em> it is right
+          now: a world that has just arrived at the rim is drawn large, and
+          shrinks as the view pulls back past it, until it merges into the point
+          at the centre. Between two worlds of equal prominence the larger one is
+          always drawn larger; between a newcomer at the rim and something that
+          has been on screen a while, it is not. The Sun is the exception — it is
+          drawn at its real size for as long as that is more than a few pixels,
+          and it is always drawn larger than every planet on screen.
         </p>
         <p>
-          This is a distance model, not a sky map. Radial order and distance
-          from the Sun are accurate; the direction each object is drawn in was
-          chosen to keep labels legible, and every object whose bearing is
-          invented says so in its details. Planet positions use each orbit's
-          semi-major axis — a static explanatory arrangement, not a live
-          ephemeris. Faint background stars are illustrative texture and are
-          never labelled; every named object is sourced.
+          <strong>The orbits are real.</strong> Every planet's path is computed
+          from JPL's J2000 Keplerian elements, so each is a true ellipse with the
+          Sun at one focus — Mercury's is visibly off-centre — on its own
+          inclined plane. Each planet sits where it actually was on 1 January
+          2000. Nothing here advances with time: it is one epoch, computed once,
+          not an ephemeris, and it does not track today's sky.
+        </p>
+        <p>
+          <strong>The planets' plane is drawn at an angle</strong>, which is what
+          makes their real inclinations visible instead of flattening every orbit
+          into one disc. The Kuiper Belt is tilted with them because it is a
+          disc too. The heliopause, the Oort Cloud and the observable-universe
+          horizon stay circular, because they are shells, and a sphere's outline
+          is a circle from every angle.
+        </p>
+        <p>
+          <strong>Beyond the Solar System this is a distance model, not a sky
+          map.</strong> Radial order and distance from the Sun are accurate; the
+          direction each object is drawn in was chosen to keep labels legible,
+          and every object whose bearing is invented says so in its details.
+          Faint background stars are illustrative texture and are never
+          labelled; every named object is sourced.
         </p>
       </details>
 

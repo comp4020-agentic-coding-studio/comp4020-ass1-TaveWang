@@ -9,7 +9,8 @@ import {
   percentOf,
 } from "../src/lib/camera";
 import { OBJECTS, SCALE_LEVELS, allSources, levelAt, objectById } from "../src/data/cosmos";
-import { labelBounds, layout } from "../src/lib/layout";
+import { labelBounds, layout, sizeRank } from "../src/lib/layout";
+import { aphelion, magnitude, orbitPath, perihelion, positionAtEpoch } from "../src/lib/orbits";
 import { AU_KM, LY_KM, crossesInterstellar, format, unitFor } from "../src/lib/units";
 
 /*
@@ -367,5 +368,134 @@ describe("camera maths", () => {
     }
     expect(logRAtPercent(-50)).toBe(MIN_LOG_R);
     expect(logRAtPercent(150)).toBe(MAX_LOG_R);
+  });
+});
+
+describe("orbits", () => {
+  const planets = OBJECTS.filter((object) => object.elements);
+
+  it("gives every planet a full set of real orbital elements", () => {
+    expect(planets.length).toBe(8);
+    for (const planet of planets) {
+      const el = planet.elements!;
+      expect(el.e, `${planet.id} eccentricity`).toBeGreaterThanOrEqual(0);
+      expect(el.e, `${planet.id} eccentricity`).toBeLessThan(1);
+      expect(Math.abs(el.I), `${planet.id} inclination`).toBeLessThan(30);
+      // The canonical distance IS the semi-major axis, so they must agree.
+      expect(el.a * AU_KM).toBeCloseTo(planet.distanceKm, 0);
+    }
+  });
+
+  it("puts the Sun at a focus, not at the centre of the ellipse", () => {
+    for (const planet of planets) {
+      const el = planet.elements!;
+      const path = orbitPath(el, 240).map(magnitude);
+      expect(Math.min(...path), `${planet.id} perihelion`).toBeCloseTo(perihelion(el), 4);
+      expect(Math.max(...path), `${planet.id} aphelion`).toBeCloseTo(aphelion(el), 4);
+    }
+  });
+
+  it("places each planet where it actually was at J2000", () => {
+    const el = objectById("earth")!.elements!;
+    const r = magnitude(positionAtEpoch(el));
+    // J2000 is 1 January 2000, days before Earth's early-January perihelion,
+    // so Earth should be very near its closest approach — 0.983 au, not 1.000.
+    expect(r).toBeGreaterThan(0.98);
+    expect(r).toBeLessThan(0.987);
+
+    for (const planet of planets) {
+      const distance = magnitude(positionAtEpoch(planet.elements!));
+      expect(distance, `${planet.id} at epoch`).toBeGreaterThanOrEqual(
+        perihelion(planet.elements!) - 1e-9,
+      );
+      expect(distance, `${planet.id} at epoch`).toBeLessThanOrEqual(
+        aphelion(planet.elements!) + 1e-9,
+      );
+    }
+  });
+
+  it("does not lay every orbit in one plane", () => {
+    // Mercury is inclined 7 degrees; if the projection ever flattens that to
+    // zero the map has quietly become a lie about the shape of the system.
+    const mercury = objectById("mercury")!.elements!;
+    const heights = orbitPath(mercury, 120).map((point) => Math.abs(point.z));
+    expect(Math.max(...heights)).toBeGreaterThan(0.04);
+    const earth = objectById("earth")!.elements!;
+    expect(Math.max(...orbitPath(earth, 120).map((p) => Math.abs(p.z)))).toBeLessThan(0.001);
+  });
+});
+
+describe("how big things are drawn", () => {
+  const STAGE = [1400, 760] as const;
+  const at = (logR: number) => layout(logR, STAGE[0], STAGE[1]);
+
+  it("never draws a planet larger than the Sun", () => {
+    // The one size comparison a reader will make without thinking. Symbol
+    // sizes encode prominence rather than size, so this has to be enforced
+    // rather than hoped for.
+    for (let logR = MIN_LOG_R; logR <= 13; logR += 0.1) {
+      const { placed } = at(logR);
+      const sun = placed.find((entry) => entry.object.id === "sun");
+      for (const entry of placed) {
+        if (!entry.object.elements) continue;
+        expect(
+          sun?.symbolPx ?? 0,
+          `${entry.object.name} is drawn larger than the Sun at logR ${logR.toFixed(1)}`,
+        ).toBeGreaterThanOrEqual(entry.symbolPx ?? 0);
+      }
+    }
+  });
+
+  it("ranks bodies by real size, so equal prominence means correct ordering", () => {
+    // This is the guarantee the design actually makes, and the limit of it.
+    // At EQUAL prominence a larger world is always drawn larger. Across very
+    // different prominences it is not — a planet arriving at the rim outsizes
+    // one that has been on screen a while, whatever their real radii — which
+    // is why the page says a symbol shows prominence, not size, rather than
+    // implying an ordering it cannot keep.
+    const radius = (id: string) => objectById(id)!.radiusKm!;
+    const order = ["sun", "jupiter", "saturn", "uranus", "earth", "mars", "mercury"];
+    for (let i = 1; i < order.length; i++) {
+      expect(
+        sizeRank(radius(order[i - 1])),
+        `${order[i - 1]} must rank above ${order[i]}`,
+      ).toBeGreaterThan(sizeRank(radius(order[i])));
+    }
+    // Uranus and Neptune are within 3% of each other in radius, so prominence
+    // legitimately decides which is drawn larger. Nothing here claims otherwise.
+    expect(Math.abs(sizeRank(radius("uranus")) - sizeRank(radius("neptune")))).toBeLessThan(0.01);
+  });
+
+  it("draws a planet large when it arrives and shrinks it as it is left behind", () => {
+    const sizeOf = (logR: number) =>
+      at(logR).placed.find((entry) => entry.object.id === "neptune")?.symbolPx ?? 0;
+    const onArrival = sizeOf(9.75);
+    expect(onArrival, "a planet should arrive big enough to see its photograph").toBeGreaterThan(
+      12,
+    );
+    let previous = onArrival;
+    for (let logR = 9.9; logR <= 11.6; logR += 0.1) {
+      const size = sizeOf(logR);
+      expect(size, `Neptune grew at logR ${logR.toFixed(1)}`).toBeLessThanOrEqual(previous + 1e-9);
+      previous = size;
+    }
+    expect(previous, "and eventually collapse toward the centre").toBeLessThan(3);
+  });
+
+  it("gives the Sun back its pin once the planets are gone", () => {
+    const wide = at(13);
+    expect(wide.placed.some((entry) => entry.object.elements)).toBe(false);
+    expect(wide.sunIsMarker).toBe(true);
+  });
+
+  it("draws real ellipses, not circles", () => {
+    // Mercury's e = 0.206: the Sun sits well off the centre of its orbit, so
+    // the near and far points of the drawn path must differ substantially.
+    const mercury = at(8.1).placed.find((entry) => entry.object.id === "mercury");
+    expect(mercury?.orbit?.length ?? 0).toBeGreaterThan(50);
+    const cx = STAGE[0] / 2;
+    const cy = STAGE[1] / 2;
+    const radii = mercury!.orbit!.map((p) => Math.hypot(p.x - cx, p.y - cy));
+    expect(Math.max(...radii) / Math.min(...radii)).toBeGreaterThan(1.3);
   });
 });

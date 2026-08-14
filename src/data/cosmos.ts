@@ -1,3 +1,4 @@
+import type { Elements } from "../lib/orbits";
 import { AU_KM, LY_KM } from "../lib/units";
 
 /*
@@ -83,6 +84,21 @@ export interface CosmicObject {
   angleDeg: number;
   visualStyleKey: string;
   photo?: Photo;
+  /**
+   * Full Keplerian elements, for the bodies that have a real orbit to draw.
+   * When present, the object's drawn position and orbit path come from these
+   * rather than from `angleDeg` — a true ellipse with the Sun at a focus, at
+   * the planet's actual J2000 position, on its actual inclined plane.
+   */
+  elements?: Elements;
+  /**
+   * True for things that are genuinely a flat disc, and so are drawn tilted
+   * with the planets. Shells — the heliopause, the Oort Cloud, the
+   * observable-universe horizon — are left as circles, because a sphere's
+   * outline is a circle from every angle and tilting it would be a nicer
+   * picture making a worse claim.
+   */
+  planar?: boolean;
 }
 
 export interface Photo {
@@ -234,6 +250,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 24,
     visualStyleKey: "rocky",
+    elements: { a: 0.38709927, e: 0.20563593, I: 7.00497902, L: 252.2503235, peri: 77.45779628, node: 48.33076593 },
     photo: {
       file: "mercury.jpg",
       alt: "Mercury as a complete grey globe, its surface saturated with overlapping impact craters.",
@@ -245,7 +262,7 @@ export const OBJECTS: CosmicObject[] = [
     shortDescription: "Semi-major axis 0.387 AU. The innermost planet, and the first thing to collapse into the Sun's glare as you pull back.",
     source: JPL_ELEMENTS,
     uncertaintyNote:
-      "Orbits are ellipses, so a planet's real distance varies. Every planet here uses its semi-major axis — the long radius of its orbit — consistently.",
+      "Its orbit is the most eccentric of the eight (e = 0.206), which is why the ellipse drawn here is visibly off-centre from the Sun. The distance quoted is the semi-major axis — the long radius — which every planet on this page uses consistently; Mercury's real distance swings between 46 and 70 million km.",
     positionIsDiagrammatic: true,
   },
   {
@@ -259,6 +276,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 108,
     visualStyleKey: "rocky",
+    elements: { a: 0.72333566, e: 0.00677672, I: 3.39467605, L: 181.9790995, peri: 131.60246718, node: 76.67984255 },
     photo: {
       file: "venus.jpg",
       alt: "Venus as a full globe in false-colour radar, its cloud-hidden surface rendered in gold and rust.",
@@ -282,6 +300,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 2,
     angleDeg: 192,
     visualStyleKey: "earth",
+    elements: { a: 1.00000261, e: 0.01671123, I: -1.531e-05, L: 100.46457166, peri: 102.93768193, node: 0.0 },
     photo: {
       file: "earth.jpg",
       alt: "Earth as a full blue and white sphere, Africa and Antarctica visible under swirls of cloud — the Apollo 17 \u201cBlue Marble\u201d.",
@@ -307,6 +326,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 300,
     visualStyleKey: "rocky",
+    elements: { a: 1.52371034, e: 0.0933941, I: 1.84969142, L: -4.55343205, peri: -23.94362959, node: 49.55953891 },
     photo: {
       file: "mars.jpg",
       alt: "Mars as a complete rust-orange globe, the Valles Marineris canyon system cutting across its middle and a white polar cap at the top.",
@@ -330,6 +350,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 60,
     visualStyleKey: "gas",
+    elements: { a: 5.202887, e: 0.04838624, I: 1.30439695, L: 34.39644051, peri: 14.72847983, node: 100.47390909 },
     photo: {
       file: "jupiter.jpg",
       alt: "Jupiter as a full banded disc in cream and orange, the Great Red Spot below and left of centre.",
@@ -353,6 +374,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 150,
     visualStyleKey: "gas",
+    elements: { a: 9.53667594, e: 0.05386179, I: 2.48599187, L: 49.95424423, peri: 92.59887831, node: 113.66242448 },
     photo: {
       file: "saturn.jpg",
       alt: "Saturn in natural colour, its pale gold globe encircled by the ring system seen at a shallow angle.",
@@ -376,6 +398,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 246,
     visualStyleKey: "ice",
+    elements: { a: 19.18916464, e: 0.04725744, I: 0.77263783, L: 313.23810451, peri: 170.9542763, node: 74.01692503 },
     photo: {
       file: "uranus.jpg",
       alt: "Uranus as an almost featureless pale cyan sphere.",
@@ -399,6 +422,7 @@ export const OBJECTS: CosmicObject[] = [
     labelPriority: 3,
     angleDeg: 336,
     visualStyleKey: "ice",
+    elements: { a: 30.06992276, e: 0.00859048, I: 1.77004347, L: -55.12002969, peri: 44.96476227, node: 131.78422574 },
     photo: {
       file: "neptune.jpg",
       alt: "Neptune as a deep blue globe, a dark storm and thin white cloud streaks visible across it.",
@@ -419,6 +443,7 @@ export const OBJECTS: CosmicObject[] = [
     category: "region",
     distanceKm: 50 * AU_KM,
     ring: true,
+    planar: true,
     labelPriority: 4,
     angleDeg: 20,
     visualStyleKey: "belt",

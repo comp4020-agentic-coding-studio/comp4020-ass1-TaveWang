@@ -241,6 +241,18 @@ the labels, the slider and the panel. In separate roots that would need a
 module store (see below); in one root it is plain `useState`. Reach for the
 store only when something genuinely cannot be one root.
 
+**Symbol size encodes prominence, not size — and that has to be said out
+loud.** No planet is ever within a thousand times of being drawable to scale
+(Earth never exceeds a fiftieth of a pixel), so a planet's drawn radius is
+`SYMBOL_MAX × sizeRank(radius) × prominence(fraction)^0.6`: large on arrival at
+the rim, shrinking as the camera leaves it behind, gone when it reaches the
+centre. Size rank keeps bodies of genuinely different sizes ordered when they
+arrive together; across very different prominences the ordering does NOT hold,
+and the Method disclosure states that limit rather than implying a guarantee
+the maths does not make. The one relationship that IS enforced, in code and in
+a test, is that the Sun is never drawn smaller than any planet on screen — it
+is the comparison a reader makes without thinking.
+
 **A photograph can only go where the geometry can carry it.** The user asked
 for real planet images. Only the Sun is ever drawn at its true angular size —
 every planet stays under a pixel at every scale this page reaches, Earth never
@@ -251,7 +263,22 @@ is not doing that. The Sun's photograph goes on the canvas, scaled so the
 lands on the computed radius; every other photo lives in the label and the
 details panel, where it says what a world looks like without saying how big it
 is. If a future change wants imagery somewhere new, check what the arithmetic
-says the object's size actually is first.
+says the object's size actually is first. (Later revised: once planets were
+drawn as prominence-sized symbols rather than dots, their photographs could go
+on the map after all — the constraint was never "no photos on planets", it was
+"no photo drawn at a size that implies a scale". Label thumbnails were dropped
+at the same time, because with the body itself photographed they rendered every
+planet twice, a few pixels apart.)
+
+**Orbits come from elements, not from angles.** `src/lib/orbits.ts` implements
+JPL's own algorithm over their J2000 Keplerian table, so orbits are true
+ellipses with the Sun at a focus, on their real inclined planes, with each
+planet at its actual epoch position. Do not replace these with drawn circles or
+chosen bearings for convenience; do not advance them with time either, because
+a moving epoch would make this an ephemeris and it is not one. The planetary
+plane is projected at an angle so the inclinations are visible; shells stay
+circular, because a sphere's outline is a circle from every angle and tilting
+one would be a nicer picture making a worse claim.
 
 **An image fit for one slot is not fit for another — open it and look.** Six
 photographs were recovered from the previous prototype's tag. Two were

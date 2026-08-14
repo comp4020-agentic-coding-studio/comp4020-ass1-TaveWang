@@ -53,15 +53,24 @@ out loud, in the **Method & scale** disclosure and in each object's details:
 - **Zooming is logarithmic; the picture is not.** Within any single view,
   distances from the Sun are drawn strictly to scale, so what you see at any
   instant is a true-to-scale map. Only the act of zooming is compressed.
-- **A marker's size means nothing physical.** Below a few pixels a body is
-  drawn as a fixed-size marker. The Sun becomes a "you are here" marker at
-  exactly the scale where drawing it to scale would make it invisible — it is
-  never falsely enlarged.
+- **Bodies are drawn as symbols, not at their true size.** No planet is ever
+  close to drawable to scale — Earth's true radius never exceeds a fiftieth of a
+  pixel here. A symbol's size shows how *prominent* an object is at the current
+  scale: it arrives large at the rim and shrinks as the view pulls back past it.
+  At equal prominence a larger world is always drawn larger; across very
+  different prominences it is not, and the page says so. The Sun is the
+  exception — drawn at its real size while that exceeds a few pixels, and always
+  larger than every planet on screen.
+- **The orbits are real.** True ellipses with the Sun at one focus, computed
+  from JPL's J2000 Keplerian elements, each on its own inclined plane, with each
+  planet at its actual 1 January 2000 position. One epoch, computed once — not
+  an ephemeris, and not today's sky.
+- **The planets' plane is drawn at an angle**, so their real inclinations are
+  visible. Shells — the heliopause, the Oort Cloud, the horizon — stay circular,
+  because a sphere's outline is a circle from every angle.
 - **This is a distance model, not a sky map.** Radial order and distance from
   the Sun are accurate. The direction each object is drawn in was chosen to keep
   labels legible, and every object whose bearing is invented says so.
-- **Planet positions use each orbit's semi-major axis** — a static explanatory
-  arrangement, not a live ephemeris.
 - **The Solar System has no single edge.** The heliopause, the gravitational
   reach of the Sun and the hypothesised Oort Cloud are three different ideas,
   and the page treats them as three different ideas.
@@ -72,22 +81,20 @@ out loud, in the **Method & scale** disclosure and in each object's details:
 
 Nine real NASA photographs — the Sun and all eight planets — each cropped to a
 square and stored under `public/images/objects/` (272 KB for the set). They
-appear in three places, and deliberately not in a fourth:
+appear in two places:
 
-- **On the map, the Sun only.** It is the one object whose true angular size
-  ever exceeds a few pixels, so it is the only one that can carry a photograph
-  honestly. Its image is scaled so the *photosphere* lands exactly on the
-  computed radius — the frame also contains corona and black margin, and
-  drawing the frame to that radius would understate the Sun while looking
-  perfectly plausible.
-- **In every label**, as a 24 px circular thumbnail beside the name.
+- **On the map**, textured onto each body's symbol once that symbol is more
+  than about seven pixels across. The Sun's is scaled so the *photosphere*
+  lands on its computed radius — the frame also contains corona and black
+  margin, and drawing the frame to that radius would understate the Sun while
+  looking perfectly plausible.
 - **In every details panel**, at a readable size with its credit and the date
   it was read.
 
-Planets are never drawn to scale anywhere in the zoom range — Earth's true
-radius never exceeds a fiftieth of a pixel — so a photograph placed at a
-planet's position on the map would be a claim about its size, and a false one.
-The markers stay dots, and the **Method & scale** disclosure says why.
+Because a planet's symbol is sized by prominence rather than by its real size,
+putting a photograph on it makes the encoding more legible, not less — you can
+see *which* world it is — but it makes the size disclosure load-bearing. The
+**Method & scale** section states it in full.
 
 ## Data
 

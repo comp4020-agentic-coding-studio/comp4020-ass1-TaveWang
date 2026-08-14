@@ -155,9 +155,20 @@ describe("zooming out", () => {
     expect(labels()).toContain("Neptune");
   });
 
-  it("turns the Sun into a location marker once it is too small to draw honestly", async () => {
-    const { container, zoomOut } = setup();
+  it("keeps the Sun a body while the planets are still on screen", async () => {
+    const { container, labels, zoomOut } = setup();
     await zoomOut(8);
+    expect(labels()).toContain("Neptune");
+    expect(
+      container.querySelector("[data-testid='you-are-here']"),
+      "while planets are drawn as large symbols the Sun must still be drawn as a body — otherwise it reads as being smaller than Mercury",
+    ).toBeNull();
+  });
+
+  it("turns the Sun into a location marker once nothing is left to draw", async () => {
+    const { container, labels, zoomOut } = setup();
+    await zoomOut(14);
+    expect(labels()).not.toContain("Neptune");
     const marker = container.querySelector("[data-testid='you-are-here']");
     expect(
       marker?.textContent,

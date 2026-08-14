@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
@@ -167,15 +167,15 @@ describe("essential content lives outside the canvas", () => {
 });
 
 describe("photographs", () => {
-  it("ships the Sun's photograph in the built page, on a relative path", () => {
-    const thumb = home.querySelector<HTMLImageElement>(".label__thumb");
-    expect(thumb, "the opening label should carry a real photograph").toBeTruthy();
-    const src = thumb?.getAttribute("src") ?? "";
-    expect(src).toMatch(/^\.\/images\/objects\/sun\.jpg$/);
-    expect(
-      thumb?.hasAttribute("alt"),
-      "a thumbnail beside a name that already says what it is, is decorative — but alt must still be present",
-    ).toBe(true);
+  it("ships every photograph as a real file on a relative path", () => {
+    // The photographs are drawn onto the canvas and shown in the details
+    // panel, so they are not <img> tags in the built HTML — but the files have
+    // to exist and the paths have to survive the Pages subpath.
+    for (const object of OBJECTS) {
+      if (!object.photo) continue;
+      const file = join(DIST, "images", "objects", object.photo.file);
+      expect(existsSync(file), `${object.id}'s photograph is missing from dist/`).toBe(true);
+    }
   });
 
   it("keeps every photograph on a relative path", () => {
@@ -203,20 +203,36 @@ describe("honesty about the model", () => {
     expect(method).toMatch(/each step outward covers vastly more space/i);
   });
 
-  it("says that a marker's size is not a physical size", () => {
+  it("says plainly that a symbol's size is not the object's size", () => {
     const method = home.querySelector(".method")?.textContent ?? "";
     expect(
       method,
-      "minimum-size markers must never be allowed to read as physical sizes",
-    ).toMatch(/never means anything physical|means nothing physical/i);
+      "symbols are sized by prominence, and the page must say so rather than let a big planet read as a big planet",
+    ).toMatch(/not at their true size/i);
+    expect(method).toMatch(/prominent/i);
+    expect(
+      method,
+      "and must state the limit of the ordering it does guarantee",
+    ).toMatch(/equal prominence/i);
   });
 
-  it("explains why the photographs are in the labels and not on the map", () => {
+  it("states that the orbits are real and the epoch is fixed", () => {
     const method = home.querySelector(".method")?.textContent ?? "";
+    expect(method).toMatch(/J2000/);
+    expect(method).toMatch(/one focus/i);
     expect(
       method,
-      "a photograph placed at an object's position would read as a claim about its size — the page has to say why they are in the labels instead",
-    ).toMatch(/photograph/i);
+      "a computed position is still a static arrangement, and must not be mistaken for an ephemeris",
+    ).toMatch(/not an ephemeris/i);
+  });
+
+  it("explains which things are tilted and which stay circular", () => {
+    const method = home.querySelector(".method")?.textContent ?? "";
+    expect(method).toMatch(/inclinations/i);
+    expect(
+      method,
+      "a shell drawn tilted would be a nicer picture and a worse claim — say why it is not",
+    ).toMatch(/sphere's outline is a circle/i);
   });
 
   it("says the bearings are diagrammatic and the map is not a sky map", () => {
