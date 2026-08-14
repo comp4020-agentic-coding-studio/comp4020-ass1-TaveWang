@@ -21,23 +21,21 @@ It replaced an earlier prototype in the same repo, preserved at the
 
 **A lint warning about an unused variable was really a warning about a false
 citation.** oxlint flagged that my JPL physical-parameters source constant was
-imported and never used. The obvious fix was to delete it. Instead I asked why
-it was unused, and found that every planet's *radius* was implicitly cited to
-JPL's orbital-elements page — a table that contains no radii at all, because
-JPL publishes sizes and orbits separately. Jupiter's "radius 69,911 km" was
-sourced to a page that has never stated it. I added a required `radiusSource`
-field and a test that fails the build if any object shows a size without its
-own citation —
+imported and never used. The obvious fix was to delete it. Instead I asked why,
+and found every planet's *radius* was implicitly cited to JPL's orbital-elements
+page — a table with no radii in it, because JPL publishes sizes and orbits
+separately. Jupiter's "radius 69,911 km" was sourced to a page that has never
+stated it. I added a required `radiusSource` field and a test that fails the
+build if any object shows a size without its own citation —
 [`9ca4484`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/9ca4484).
 
 **I cut Voyager 1 because including it would have quietly changed what the
-number meant.** It was on my object list and it is the obvious thing to put at
-the heliopause. But NASA's live tracker reports its distance from *Earth*, and
-this map is Sun-centred. The number would have looked right, sat in the right
-place, and silently measured something else. Barnard's Star and Sirius went for a
-blunter reason: no NASA or ESA page I could reach stated their distances, and I
-decided an unsourced number does not ship. The dataset records all three
-omissions and why, so each absence reads as a decision —
+number meant.** It is the obvious thing to put at the heliopause. But NASA's
+tracker reports its distance from *Earth*, and this map is Sun-centred: the
+number would have looked right, sat in the right place, and silently measured
+something else. Barnard's Star and Sirius went for a blunter reason — no page I
+could reach stated their distances, and an unsourced number does not ship. The
+dataset records each omission and why —
 [`9ca4484`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/9ca4484).
 
 **A green suite and a stalled animation at the same time.** I had written the
@@ -50,13 +48,16 @@ and the scheduling outside the updater fixed it. I could have raised the
 timeout and moved on —
 [`1d2122d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/1d2122d).
 
-**My tests were checking a shape the site does not ship.** A screenshot showed
-the Milky Way unlabelled at the exact scale band named "The Milky Way", while a
-unit test asserting the opposite passed. The tests assumed a square-ish stage;
-the real one is a wide, short band, where a structure's circle is much smaller
-and fell under the label threshold. Two causes, not one: the threshold, and the
-Sun's centre label blocking anything near the middle. Labels now try four
-positions, the tests use the shipped aspect ratios, and the collision estimate
-accounts for the fact that letterspaced labels are 45% wider than a character
-count predicts —
-[`74fa230`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/74fa230).
+**I stopped eyeballing screenshots and committed the check instead.** Four
+spec lines — no horizontal overflow and visible controls at both marking
+viewports, no console errors during the interaction — cannot be asserted in
+jsdom, which has no layout engine and returns zero for every measurement. I had
+been checking them by hand, which made them exactly as reliable as remembering
+to. Instead of one more manual pass I wrote `scripts/check-viewports.mjs`: it
+serves the built site, drives the real zoom through fourteen scales at both
+viewports, and measures the *rendered* label boxes. It failed on its first run
+with three label collisions, and the cause was a real bug — my collision
+estimate modelled a label as one 22-pixel line when it renders as two, because
+I had forgotten the category subtitle under the name. Fixing the estimate took
+it from three failures to none —
+[`ee32b52`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/ee32b52).
