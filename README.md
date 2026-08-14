@@ -133,6 +133,18 @@ pnpm build          # produce dist/, which is what deploys
 and the deploy. Run `pnpm dlx linkinator ./dist --silent` against a fresh build
 to reproduce the link check locally.
 
+```sh
+pnpm build && pnpm check:viewports
+```
+
+`check:viewports` is the pre-ship gate for everything a layout engine is needed
+to see. It serves `dist/`, drives the real zoom through fourteen scales at
+1920×1080 and 390×844, and asserts no horizontal overflow, no console errors,
+44px controls, and that no two **rendered** label boxes overlap. jsdom cannot do
+any of that — it has no layout, so every measurement is zero. It is kept out of
+`pnpm check` and CI on purpose: it needs a browser binary, and a flaky download
+should not block the deploy over a rendering check.
+
 ## Tests
 
 - `spec/invariants.test.ts` — shipped with the template: language, title,
@@ -144,8 +156,11 @@ to reproduce the link check locally.
   real events in a DOM.
 - `spec/dataset.test.ts` — the data and the maths: unique ids, ascending
   distances, a dated source for every claim, a separate citation for every
-  radius, uncertainty notes where they are required, label collision, and the
-  unit-transition policy.
+  radius, uncertainty notes where they are required, real orbits (Sun at a
+  focus, epoch positions inside perihelion/aphelion), symbol sizing, label
+  collision, and the unit-transition policy.
+- `scripts/check-viewports.mjs` — the rendered-layout checks, run before
+  shipping rather than in CI (see above).
 
 ## Reference interfaces
 

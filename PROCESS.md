@@ -51,9 +51,8 @@ timeout and moved on —
 **I stopped eyeballing screenshots and committed the check instead.** Four
 spec lines — no horizontal overflow and visible controls at both marking
 viewports, no console errors during the interaction — cannot be asserted in
-jsdom, which has no layout engine and returns zero for every measurement. I had
-been checking them by hand, which made them exactly as reliable as remembering
-to. Instead of one more manual pass I wrote `scripts/check-viewports.mjs`: it
+jsdom, which has no layout engine and returns zero for every measurement. I had been
+checking them by hand, which made them as reliable as remembering to. Instead I wrote `scripts/check-viewports.mjs`: it
 serves the built site, drives the real zoom through fourteen scales at both
 viewports, and measures the *rendered* label boxes. It failed on its first run
 with three label collisions, and the cause was a real bug — my collision
