@@ -9,15 +9,13 @@ single semantic scalar — `logR`, the log of the visible radius in kilometres �
 so zooming is logarithmic while the picture never is: within one frame,
 distances are drawn strictly to scale. That is what makes the inner planets
 genuinely bunch toward the middle as you retreat, rather than being animated
-into doing so. Planet orbits are computed from JPL's J2000 elements, so they are true
-ellipses with the Sun at a focus, on real inclined planes. The counterpart is
-that the page has to be loud about what it *isn't*: symbol sizes encode
-prominence, not size; bearings beyond the planets are chosen for legibility;
-and the Solar System's edge depends on which definition you pick.
+into doing so. Orbits come from JPL's J2000 elements — true ellipses, Sun at a focus, real
+inclined planes. The counterpart is that the page must be loud about what it
+*isn't*: symbol sizes encode prominence, not size, and the Solar System's edge
+depends on which definition you pick.
 
-This replaced an earlier prototype in the same repo — a deliberate call, since
-the brief asks for one strong idea and nothing else. The old one is preserved
-at the `up-explainer` tag.
+It replaced an earlier prototype in the same repo, preserved at the
+`up-explainer` tag.
 
 ## The moments that mattered
 
