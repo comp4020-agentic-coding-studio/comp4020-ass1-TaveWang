@@ -207,13 +207,16 @@ describe("honesty about the model", () => {
     const method = home.querySelector(".method")?.textContent ?? "";
     expect(
       method,
-      "symbols are sized by prominence, and the page must say so rather than let a big planet read as a big planet",
+      "a symbol is not a scale drawing, and the page must say so rather than let a big planet read as a big planet",
     ).toMatch(/not at their true size/i);
-    expect(method).toMatch(/prominent/i);
     expect(
       method,
-      "and must state the limit of the ordering it does guarantee",
-    ).toMatch(/equal prominence/i);
+      "it must state the ordering guarantee it now keeps — enforced across the whole zoom range in spec/dataset.test.ts",
+    ).toMatch(/never drawn smaller than a smaller one/i);
+    expect(
+      method,
+      "and must say the ranking is compressed, so nobody reads a symbol ratio as a size ratio",
+    ).toMatch(/compressed/i);
   });
 
   it("states that the orbits are real and the epoch is fixed", () => {

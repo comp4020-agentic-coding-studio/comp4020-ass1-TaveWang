@@ -58,21 +58,37 @@ const TILT_Z = 0.86;
  *
  * No planet is ever within a thousand times of being drawable at its true
  * size: Earth's true radius never exceeds a fiftieth of a pixel anywhere in
- * this zoom range. So a planet is drawn as a SYMBOL, and the symbol encodes
- * prominence — how recently the object arrived in the frame — rather than
- * size. A body just entering at the rim is drawn large; as the camera pulls
- * back and it is dragged toward the centre, it shrinks, and eventually it
- * merges into the point at the middle.
+ * this zoom range. So a planet is drawn as a SYMBOL, and a symbol's size is
  *
- * Size rank is folded in so that bodies which arrive together — Uranus and
- * Neptune, or Venus and Earth and Mars — are still ordered correctly against
- * each other, which is when a reader is most likely to compare them. Across
- * very different prominences the ordering does NOT hold, and the page says so
- * in as many words rather than pretending otherwise.
+ *     SYMBOL_MAX × unit × sizeRank(true radius) × systemProminence^DECAY
  *
- * The Sun is exempt: it is the subject of the map, it is drawn at its true
- * size for as long as that is more than a few pixels, and after that it stops
- * being a body at all and becomes a "you are here" pin.
+ * where `systemProminence` is ONE number for the whole planetary system, taken
+ * from the outermost planet. Every planet on screen shares it, so the only
+ * thing that separates two symbols is the bodies' real radii. That is the
+ * whole point, and it replaces a per-object prominence that produced two bugs:
+ *
+ * - Prominence rises with distance from the Sun, so an outer planet outgrew an
+ *   inner one whatever their real sizes. Jupiter was drawn at 8.7px next to a
+ *   20.5px Neptune — Jupiter is 2.8× Neptune's radius, drawn at 42% its size.
+ * - The Sun's floor was the largest planet symbol *currently on screen*, a
+ *   maximum over a set whose membership jumps. Every planet arriving at the
+ *   rim therefore resized the Sun at the centre: eight visible jumps across
+ *   the zoom range, the worst of them +291%.
+ *
+ * A single shared prominence fixes both at once. It is a continuous function
+ * of the camera scale alone, so nothing at the centre moves when something
+ * crosses the frame edge; and it cancels out of any comparison between two
+ * symbols, so drawn size orders exactly as real size does.
+ *
+ * The system still arrives large and shrinks: a planet appears at the rim at
+ * full size, and once the outermost planet starts falling inward every symbol
+ * shrinks together, converging on the centre.
+ *
+ * The Sun runs through the same formula with the same size rank — it is simply
+ * the largest body, so it is always drawn largest. It is drawn at its true
+ * size for as long as that is bigger than its symbol, and once the symbol
+ * falls under a couple of pixels it stops being a body at all and becomes a
+ * "you are here" pin.
  */
 const SYMBOL_MAX = 0.095;
 const SYMBOL_FULL_AT = 0.85;
@@ -92,6 +108,19 @@ export function sizeRank(radiusKm: number): number {
   return 0.4 + 0.6 * Math.min(1, Math.max(0, t));
 }
 
+/**
+ * How much of the frame a body's distance spans: 1 at the rim or beyond, 0 at
+ * the centre. Continuous everywhere, including through both clamps.
+ */
+export function prominence(fraction: number): number {
+  return Math.min(1, Math.max(0, fraction / SYMBOL_FULL_AT));
+}
+
+/** The one place a symbol's radius in pixels is decided. */
+function symbolPx(unit: number, rank: number, atProminence: number): number {
+  return SYMBOL_MAX * unit * rank * atProminence ** SYMBOL_DECAY;
+}
+
 export interface Placed {
   object: CosmicObject;
   /** Distance as a fraction of the visible radius. */
@@ -101,11 +130,6 @@ export interface Placed {
   y: number;
   /** Set when the object's orbit or boundary is drawn as a ring about the Sun. */
   ringRadiusPx?: number;
-  /**
-   * Set only when the body is big enough on screen to be drawn at its true
-   * angular size. In practice this is the Sun and nothing else.
-   */
-  discRadiusPx?: number;
   /** Radius the body is actually drawn at — true size for the Sun, symbol otherwise. */
   symbolPx?: number;
   /** The planet's real elliptical orbit, already projected to screen points. */
@@ -240,6 +264,31 @@ export function layout(
   const sunObject = OBJECTS[0];
   const sunTruePx = ((sunObject.radiusKm ?? 0) / scaleKm) * unit;
 
+  // --- One prominence for the whole planetary system -----------------------
+  //
+  // Taken over EVERY planet, on screen or not, so this depends on the camera
+  // scale and nothing else. That is what makes it safe to build the Sun's size
+  // on: a planet crossing the frame edge changes what happens at the rim and
+  // leaves the centre alone. It is the outermost planet's in practice, but
+  // computing the maximum keeps that true if a planet is ever added.
+  const systemProminence = OBJECTS.reduce(
+    (max, object) =>
+      object.elements
+        ? Math.max(max, prominence(fractionAt(object.distanceKm, logR)))
+        : max,
+    0,
+  );
+
+  // The Sun through the same formula as every planet. Its size rank is 1 and
+  // no planet's reaches 0.76, so "the Sun is never drawn smaller than a
+  // planet" is a property of the arithmetic rather than a floor bolted on
+  // afterwards — and it inherits the same smoothness.
+  const sunDrawnPx = Math.max(
+    sunTruePx,
+    symbolPx(unit, sizeRank(sunObject.radiusKm ?? 0), systemProminence),
+  );
+  const sunIsPin = sunDrawnPx < MIN_MARKER_PX;
+
   const placed: Placed[] = [];
 
   for (const object of OBJECTS) {
@@ -257,7 +306,9 @@ export function layout(
 
     if (object.id !== "sun") {
       if (adjusted > limit) continue;
-      if (fraction < CORE && !surrounds) continue;
+      // Planets are culled by the Sun's disc instead, once their position
+      // reaches it — see below.
+      if (fraction < CORE && !surrounds && object.elements === undefined) continue;
       if (isStructure && (object.structureRadiusKm ?? 0) / scaleKm < CORE) continue;
     }
 
@@ -271,6 +322,17 @@ export function layout(
     if (object.elements) {
       const at = positionAtEpoch(object.elements);
       const screen = project(at.x, at.y, at.z);
+      // A planet whose position has reached the Sun's disc has merged into it.
+      // The Sun is drawn last and over it, so most of it is already hidden;
+      // this is a boundary that means something on screen, rather than a fixed
+      // fraction of the frame, and it lands the disappearance at the scale
+      // where the system really has collapsed to a point.
+      //
+      // Waiting for the planet's whole symbol to be covered would be a softer
+      // transition but a worse map: distance shrinks faster than the symbols
+      // do, so Neptune would survive another decade of zoom and litter the
+      // interstellar scales as a sub-pixel dot.
+      if (Math.hypot(screen.x - cx, screen.y - cy) < sunDrawnPx) continue;
       x = screen.x;
       y = screen.y;
       entry.x = x;
@@ -286,8 +348,9 @@ export function layout(
       // Never on top of the Sun itself. Above the disc while it is large,
       // because below it is where the opening instruction sits; below the
       // marker once the Sun is small, so it reads as a caption on the
-      // "you are here" crosshair.
-      entry.y = cy - sunTruePx - 13;
+      // "you are here" crosshair. `sunDrawnPx` only ever decreases as the
+      // camera pulls back, so this crosses over exactly once.
+      entry.y = sunDrawnPx > 40 ? cy - sunDrawnPx - 13 : cy + sunDrawnPx + 12;
       entry.labelY = entry.y;
     }
 
@@ -297,23 +360,22 @@ export function layout(
     // be three-pixel dots either. They get the same prominence curve as the
     // planets, weighted by a curated visual rank instead of a physical one.
     if (object.radiusKm === undefined && object.symbolRank !== undefined) {
-      const prominence = Math.min(1, Math.max(0, fraction / SYMBOL_FULL_AT));
-      entry.symbolPx = SYMBOL_MAX * unit * object.symbolRank * prominence ** SYMBOL_DECAY;
+      // These never share a frame with a planet, and their rank is an
+      // editorial judgement rather than a radius, so they keep a prominence of
+      // their own — there is no size relationship here to preserve.
+      entry.symbolPx = symbolPx(unit, object.symbolRank, prominence(fraction));
     }
 
     if (object.radiusKm !== undefined) {
-      const truePx = (object.radiusKm / scaleKm) * unit;
-      if (truePx >= MIN_MARKER_PX) entry.discRadiusPx = truePx;
-
-      if (object.id === "sun") {
-        // Filled in below, once every planet symbol is known.
-        entry.symbolPx = entry.discRadiusPx;
-      } else {
-        const prominence = Math.min(1, Math.max(0, fraction / SYMBOL_FULL_AT));
-        const symbol =
-          SYMBOL_MAX * unit * sizeRank(object.radiusKm) * prominence ** SYMBOL_DECAY;
-        entry.symbolPx = Math.max(truePx, symbol);
-      }
+      // Sun or planet: the only objects with a measured radius. Every one of
+      // them is sized from the shared prominence, so what separates two
+      // symbols on screen is their real radii and nothing else. A planet's
+      // true size is not folded in — it never reaches a pixel, so a maximum
+      // against it would be decoration, and spec/dataset.test.ts says so.
+      entry.symbolPx =
+        object.id === "sun"
+          ? sunDrawnPx
+          : symbolPx(unit, sizeRank(object.radiusKm), systemProminence);
     }
 
     if (isStructure) {
@@ -336,31 +398,6 @@ export function layout(
 
     placed.push(entry);
   }
-
-  // --- The Sun's size, last, because it depends on everything else ---------
-  //
-  // The Sun is drawn at its true size for as long as that is more than a few
-  // pixels. After that it would become a sub-pixel dot while the planets are
-  // still large symbols, which reads as the Sun being smaller than Mercury. So
-  // while any planet is on screen the Sun is drawn a clear step larger than the
-  // largest of them — the one size relationship on this map that is never in
-  // doubt. Once the planets collapse into the centre the floor goes with them
-  // and the Sun becomes a "you are here" pin.
-  const sunEntry = placed.find((entry) => entry.object.id === "sun");
-  let sunDrawnPx = sunEntry?.discRadiusPx ?? 0;
-  if (sunEntry) {
-    const largestPlanet = placed.reduce(
-      (max, entry) => (entry.object.elements ? Math.max(max, entry.symbolPx ?? 0) : max),
-      0,
-    );
-    sunDrawnPx = Math.max(sunDrawnPx, largestPlanet * 1.15);
-    sunEntry.symbolPx = sunDrawnPx;
-    if (sunDrawnPx >= MIN_MARKER_PX) {
-      // Re-anchor the label against whatever the Sun ended up drawn as.
-      sunEntry.y = sunDrawnPx > 40 ? cy - sunDrawnPx - 13 : cy + sunDrawnPx + 12;
-    }
-  }
-  const sunIsPin = sunDrawnPx < MIN_MARKER_PX;
 
   // --- Labels -------------------------------------------------------------
   // Deterministic priority, then distance. Never random, never frame-dependent:

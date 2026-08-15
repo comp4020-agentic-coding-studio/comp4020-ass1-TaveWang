@@ -446,24 +446,79 @@ describe("how big things are drawn", () => {
     }
   });
 
-  it("ranks bodies by real size, so equal prominence means correct ordering", () => {
-    // This is the guarantee the design actually makes, and the limit of it.
-    // At EQUAL prominence a larger world is always drawn larger. Across very
-    // different prominences it is not — a planet arriving at the rim outsizes
-    // one that has been on screen a while, whatever their real radii — which
-    // is why the page says a symbol shows prominence, not size, rather than
-    // implying an ordering it cannot keep.
+  it("ranks bodies by real size", () => {
     const radius = (id: string) => objectById(id)!.radiusKm!;
-    const order = ["sun", "jupiter", "saturn", "uranus", "earth", "mars", "mercury"];
+    const order = ["sun", "jupiter", "saturn", "uranus", "neptune", "earth", "mars", "mercury"];
     for (let i = 1; i < order.length; i++) {
       expect(
         sizeRank(radius(order[i - 1])),
         `${order[i - 1]} must rank above ${order[i]}`,
       ).toBeGreaterThan(sizeRank(radius(order[i])));
     }
-    // Uranus and Neptune are within 3% of each other in radius, so prominence
-    // legitimately decides which is drawn larger. Nothing here claims otherwise.
-    expect(Math.abs(sizeRank(radius("uranus")) - sizeRank(radius("neptune")))).toBeLessThan(0.01);
+  });
+
+  it("never draws a smaller world larger than a bigger one", () => {
+    // The guarantee the shared system prominence buys, and the reason it is
+    // shared. When each body carried its own prominence, the factor did not
+    // cancel between two symbols and distance won: Jupiter was drawn at 8.7px
+    // beside a 20.5px Neptune, at 42% the size of a world 2.8× smaller. Every
+    // planet now takes the same factor, so the only thing separating two
+    // symbols is sizeRank, which is monotonic in the real radius.
+    for (let logR = MIN_LOG_R; logR <= 13; logR += 0.02) {
+      const bodies = layout(logR, STAGE[0], STAGE[1]).placed.filter(
+        (entry) => entry.object.radiusKm !== undefined,
+      );
+      for (const a of bodies) {
+        for (const b of bodies) {
+          if (a.object.radiusKm! <= b.object.radiusKm!) continue;
+          expect(
+            a.symbolPx ?? 0,
+            `${a.object.name} (${a.object.radiusKm} km) is drawn smaller than ` +
+              `${b.object.name} (${b.object.radiusKm} km) at logR ${logR.toFixed(2)}`,
+          ).toBeGreaterThanOrEqual((b.symbolPx ?? 0) - 1e-9);
+        }
+      }
+    }
+  });
+
+  it("never resizes the Sun because something else arrived at the rim", () => {
+    // The bug this test exists for: the Sun's size used to be a maximum over
+    // the planets CURRENTLY ON SCREEN, so every arrival changed it — eight
+    // jumps across the range, the worst +291% when Mercury appeared. The
+    // reader was watching the Sun and it flinched at something happening in
+    // the corner of the frame.
+    //
+    // Both halves matter. Monotonicity says pulling back never makes the Sun
+    // bigger; the step bound says it never lurches. The step here is 0.004
+    // decades, over which pure 1/scale shrink is 0.93%, so 2% leaves room for
+    // the geometry and none for a pop.
+    const STEP = 0.004;
+    let previous = layout(MIN_LOG_R, STAGE[0], STAGE[1]).sunRadiusPx;
+    for (let logR = MIN_LOG_R + STEP; logR <= MAX_LOG_R; logR += STEP) {
+      const size = layout(logR, STAGE[0], STAGE[1]).sunRadiusPx;
+      expect(size, `the Sun grew as the camera pulled back at logR ${logR.toFixed(3)}`).toBeLessThanOrEqual(previous + 1e-9);
+      expect(
+        Math.abs(size - previous) / Math.max(previous, 0.5),
+        `the Sun jumped at logR ${logR.toFixed(3)} — ${previous.toFixed(2)}px to ${size.toFixed(2)}px`,
+      ).toBeLessThan(0.02);
+      previous = size;
+    }
+  });
+
+  it("never folds a planet's true size in, because it never reaches a pixel", () => {
+    // Justifies sizing planets from the symbol alone. If this ever fails, a
+    // planet has become drawable to scale and the encoding needs revisiting
+    // rather than a silent maximum putting it right.
+    for (let logR = MIN_LOG_R; logR <= MAX_LOG_R; logR += 0.05) {
+      for (const entry of layout(logR, STAGE[0], STAGE[1]).placed) {
+        if (!entry.object.elements) continue;
+        const truePx = (entry.object.radiusKm! / 10 ** logR) * (Math.min(...STAGE) / 2);
+        expect(
+          truePx,
+          `${entry.object.name} is drawable at true size at logR ${logR.toFixed(2)}`,
+        ).toBeLessThan(1);
+      }
+    }
   });
 
   it("draws a planet large when it arrives and shrinks it as it is left behind", () => {

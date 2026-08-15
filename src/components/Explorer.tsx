@@ -728,14 +728,19 @@ export default function Explorer() {
           <strong>Bodies are drawn as symbols, not at their true size.</strong>{" "}
           No planet ever comes close to being drawable to scale here — Earth's
           true radius never exceeds a fiftieth of a pixel at any scale this page
-          reaches. So a body's symbol shows how <em>prominent</em> it is right
-          now: a world that has just arrived at the rim is drawn large, and
-          shrinks as the view pulls back past it, until it merges into the point
-          at the centre. Between two worlds of equal prominence the larger one is
-          always drawn larger; between a newcomer at the rim and something that
-          has been on screen a while, it is not. The Sun is the exception — it is
-          drawn at its real size for as long as that is more than a few pixels,
-          and it is always drawn larger than every planet on screen.
+          reaches. A symbol is sized from the body's real radius on a
+          logarithmic rank, multiplied by one factor shared by everything in the
+          planetary system. Because the factor is shared, it cancels out of any
+          comparison you make: <em>a larger world is never drawn smaller than a
+          smaller one</em>, at any scale, and the Sun — the largest body here —
+          is always drawn largest. What the shared factor does is set how
+          prominent the whole system is right now, so the planets arrive at full
+          size, then shrink together and converge on the centre as you pull
+          back. It depends only on how far out you have zoomed, which is why
+          nothing at the centre changes size when a planet crosses the rim.
+          The ranking is compressed, though, so read it as an order and not as
+          a ratio: Jupiter is 11 times Earth&rsquo;s radius and is drawn about
+          1.5 times its symbol.
         </p>
         <p>
           <strong>The orbits are real.</strong> Every planet's path is computed

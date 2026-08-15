@@ -241,17 +241,37 @@ the labels, the slider and the panel. In separate roots that would need a
 module store (see below); in one root it is plain `useState`. Reach for the
 store only when something genuinely cannot be one root.
 
-**Symbol size encodes prominence, not size — and that has to be said out
-loud.** No planet is ever within a thousand times of being drawable to scale
-(Earth never exceeds a fiftieth of a pixel), so a planet's drawn radius is
-`SYMBOL_MAX × sizeRank(radius) × prominence(fraction)^0.6`: large on arrival at
-the rim, shrinking as the camera leaves it behind, gone when it reaches the
-centre. Size rank keeps bodies of genuinely different sizes ordered when they
-arrive together; across very different prominences the ordering does NOT hold,
-and the Method disclosure states that limit rather than implying a guarantee
-the maths does not make. The one relationship that IS enforced, in code and in
-a test, is that the Sun is never drawn smaller than any planet on screen — it
-is the comparison a reader makes without thinking.
+**A shared factor is what makes a size encoding readable; a per-object one
+destroys it.** No planet is ever within a thousand times of being drawable to
+scale (Earth never exceeds a fiftieth of a pixel), so a symbol's radius is
+`SYMBOL_MAX × unit × sizeRank(radius) × systemProminence^0.6`, where
+`systemProminence` is ONE number for the whole planetary system, taken from the
+outermost planet whether or not it is on screen.
+
+The first version gave every body its own prominence, and both of its bugs came
+from the same place. Prominence rises with distance from the Sun, so the factor
+did not cancel between two symbols and distance beat radius: Jupiter was drawn
+at 8.7px beside a 20.5px Neptune — 42% the size of a world 2.8 times smaller.
+And the Sun's floor was a maximum over the planets *currently on screen*, a set
+whose membership jumps, so every arrival at the rim resized the Sun at the
+centre: eight jumps across the range, the worst +291%. **The reader was watching
+the Sun and it flinched at something happening in the corner of the frame.**
+
+Sharing the factor fixes both at once, because it makes the encoding depend on
+the camera scale and nothing else. Two properties follow, and both are swept
+across the whole zoom range in `spec/dataset.test.ts` rather than argued for
+here: a larger world is never drawn smaller than a smaller one, and the Sun's
+size is monotonic in `logR` and never changes by more than 2% per 0.004
+decades. The Sun needs no special case at all now — it runs through the same
+formula with `sizeRank = 1`, and no planet's rank reaches 0.76.
+
+Two lessons that generalise. **When one number has to carry two meanings, split
+it, don't tune it** — here size carried "how big is this world" and "how
+prominent is it now", and no exponent reconciles them: Uranus and Neptune are
+3% apart in radius and 1.57× apart in distance, so any per-object factor with
+real decay inverts them. And **a value derived from a set whose membership
+changes is a discontinuity waiting to be seen**; derive it from the continuous
+quantity underneath instead.
 
 **A photograph can only go where the geometry can carry it.** The user asked
 for real planet images. Only the Sun is ever drawn at its true angular size —

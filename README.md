@@ -55,12 +55,15 @@ out loud, in the **Method & scale** disclosure and in each object's details:
   instant is a true-to-scale map. Only the act of zooming is compressed.
 - **Bodies are drawn as symbols, not at their true size.** No planet is ever
   close to drawable to scale — Earth's true radius never exceeds a fiftieth of a
-  pixel here. A symbol's size shows how *prominent* an object is at the current
-  scale: it arrives large at the rim and shrinks as the view pulls back past it.
-  At equal prominence a larger world is always drawn larger; across very
-  different prominences it is not, and the page says so. The Sun is the
-  exception — drawn at its real size while that exceeds a few pixels, and always
-  larger than every planet on screen.
+  pixel here. A symbol is the body's real radius on a logarithmic rank, times
+  one factor shared by the whole planetary system. Because the factor is shared
+  it cancels out of any comparison, so **a larger world is never drawn smaller
+  than a smaller one**, and the Sun is always drawn largest. The shared factor
+  is what makes the system arrive at full size and then shrink together toward
+  the centre; it depends only on how far out you have zoomed, so nothing at the
+  centre resizes when a planet crosses the rim. The ranking is compressed —
+  Jupiter is 11 times Earth's radius and drawn about 1.5 times its symbol — so
+  it is an order, not a ratio, and the page says so.
 - **The orbits are real.** True ellipses with the Sun at one focus, computed
   from JPL's J2000 Keplerian elements, each on its own inclined plane, with each
   planet at its actual 1 January 2000 position. One epoch, computed once — not
