@@ -24,6 +24,16 @@
 html,
 body {
   margin: 0;
+}
+
+/*
+ * Only on <html>, never on <body>. `overflow-x: hidden` computes overflow-y to
+ * `auto`, which turns the element into a scroll container; <body> then becomes
+ * the scrollport for any sticky descendant while never actually scrolling
+ * itself, so a `position: sticky` child can never stick. That is what kept the
+ * phone control bar below the fold after it had been written correctly.
+ */
+html {
   overflow-x: hidden;
 }
 
@@ -187,6 +197,16 @@ summary:focus-visible,
   text-transform: uppercase;
 }
 
+/* The grouped label stands for several objects and opens nothing, so it must
+   not offer the affordances of the ones that do. */
+.label__button--static {
+  cursor: default;
+}
+
+.label--group .label__name {
+  color: var(--dim);
+}
+
 .label__button:hover,
 .label__button[aria-pressed="true"] {
   border-left-color: var(--accent);
@@ -297,6 +317,17 @@ summary:focus-visible,
   font-size: 0.95rem;
 }
 
+.readout__caveat {
+  margin: 0.55rem 0 0;
+  color: var(--dim);
+  font-size: 0.88rem;
+}
+
+.readout__caveat strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
 .scalebar {
   display: flex;
   gap: 0.55rem;
@@ -363,6 +394,45 @@ summary:focus-visible,
   border: 1px solid var(--line);
   background: transparent;
   color: var(--fg);
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* --- the coda, shown in the model at the widest scale --------------------- */
+
+/* Anchored to the TOP of the stage, and not by preference. At the widest scale
+   the bottom of the stage is the busiest part of it: on wide screens the
+   readout is overlaid there, and on a phone the Sun's marker and its "you are
+   here" caption sit just below centre — which is the thing the first line is
+   pointing at. The top of the frame is empty sky at this scale. */
+.stage__coda {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  left: 1rem;
+  z-index: 3;
+  max-width: 34rem;
+  margin-inline: auto;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  background: rgb(4 5 10 / 88%);
+  text-align: center;
+}
+
+.stage__coda-line {
+  margin: 0 0 0.5rem;
+  color: var(--fg);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.stage__coda-return {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
   font-family: system-ui, sans-serif;
   font-size: 0.85rem;
   cursor: pointer;
@@ -501,6 +571,22 @@ summary:focus-visible,
   padding-top: 2rem;
 }
 
+/* The disclosure that holds the textual journey. It is a real <summary>, so it
+   is focusable, operable by Enter or Space and announced as expandable without
+   any ARIA of ours. */
+.journey__summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+  color: var(--accent);
+  font-family: system-ui, sans-serif;
+  font-size: 0.95rem;
+}
+
+.journey__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .journey h2,
 .sources h2 {
   font-size: 1.25rem;
@@ -578,8 +664,59 @@ summary:focus-visible,
 /* --- phone --------------------------------------------------------------- */
 
 @media (width <= 600px) {
+  /*
+   * The phone budget, measured at 390×844 rather than guessed: 51px of nav,
+   * 230px of masthead, and 563px left for the model, the readout and the
+   * controls. At 52vh the stage alone took 439 of it, which pushed the
+   * controls to 876 — below the fold — and any bar pinned to the bottom of the
+   * viewport then covers the readout instead, which is the page's whole point.
+   * A bottom bar can only avoid covering something if the content above it
+   * fits, so the stage gives back seven vh and the readout tightens up.
+   */
   .explorer__stage {
-    height: clamp(300px, 52vh, 460px);
+    height: clamp(280px, 42vh, 420px);
+  }
+
+  .readout {
+    padding-top: 0.7rem;
+  }
+
+  .readout__insight {
+    margin-top: 0.25rem;
+    font-size: 0.88rem;
+  }
+
+  .readout__caveat {
+    font-size: 0.82rem;
+  }
+
+  /* A 380px stage cannot carry desktop-sized type without burying the model. */
+  .stage__coda {
+    top: 0.6rem;
+    right: 0.6rem;
+    left: 0.6rem;
+    padding: 0.6rem 0.7rem;
+  }
+
+  .stage__coda-line {
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  /*
+   * Both lines plus a 44px button come to 166px on a 354px stage, which lands
+   * on the Sun's marker whichever end of the frame it is anchored to — and the
+   * marker is the thing the closing is about. The phone keeps the second line,
+   * which is the conclusion; the first is scene-setting and both are still in
+   * the closing section further down the page.
+   */
+  .stage__coda-line:first-child {
+    display: none;
+  }
+
+  .scalebar {
+    margin-top: 0.45rem;
   }
 
   /* A bottom sheet, so the model above it stays visible while reading. */
@@ -597,6 +734,43 @@ summary:focus-visible,
     display: none;
   }
 
+  /*
+   * The controls sat below the fold on a phone — measured at top: 896px in an
+   * 844px viewport, so every one of zoom in, zoom out, the slider and the way
+   * back to the Sun needed a scroll before the model could be driven at all.
+   * They were already 44px; being the right size below the fold is no use.
+   *
+   * Sticky rather than fixed: it rides the normal flow, so it cannot cover the
+   * end of the page, and it stops sticking once the reader has scrolled past
+   * the model into the text. The safe-area inset keeps it clear of a home
+   * indicator on a notched phone, and the fallback keeps the padding sane
+   * where that environment variable is unsupported.
+   */
+  .controls {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+    padding-bottom: max(0.45rem, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+  }
+
+  /* Room for four 44px targets across 390px: the slider takes what is left. */
+  .controls__slider {
+    flex: 1 1 4rem;
+    min-width: 4rem;
+  }
+
+  .controls__restart {
+    flex: 0 0 auto;
+    padding: 0 0.7rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
 }
 
 /* --- reduced motion ------------------------------------------------------ */

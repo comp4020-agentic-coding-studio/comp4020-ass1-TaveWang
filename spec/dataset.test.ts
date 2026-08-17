@@ -232,6 +232,63 @@ describe("label placement", () => {
     expect(names(MAX_LOG_R).join(" ")).toContain("observable universe");
   });
 
+  it("never draws a label across the Sun", () => {
+    // The collision pass compares labels with each other, and the Sun is not a
+    // label — so nothing stopped "Venus" landing on the photosphere, where
+    // white text on a white-hot photograph cannot be read. Found by looking at
+    // the deployed page at 1920×1080, which is the only place it was visible.
+    for (const [width, height] of [
+      [1920, 669],
+      [390, 354],
+    ]) {
+      for (let logR = MIN_LOG_R; logR <= 12; logR += 0.05) {
+        const view = layout(logR, width, height, width < 600 ? 5 : 12);
+        const sun = {
+          left: width / 2 - view.sunRadiusPx,
+          right: width / 2 + view.sunRadiusPx,
+          top: height / 2 - view.sunRadiusPx,
+          bottom: height / 2 + view.sunRadiusPx,
+        };
+        for (const entry of view.labelled) {
+          // The Sun's own caption is anchored against its disc by design.
+          if (entry.object.id === "sun") continue;
+          const box = labelBounds(entry, width);
+          const clear =
+            box.right <= sun.left ||
+            box.left >= sun.right ||
+            box.bottom <= sun.top ||
+            box.top >= sun.bottom;
+          expect(
+            clear,
+            `${entry.object.name}'s label is drawn across the Sun at logR ${logR.toFixed(2)} on ${width}×${height}`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("labels the inner planets as one once the frame has compressed them", () => {
+    // Well separated: label them individually.
+    const spread = layout(8.5, 1920, 669);
+    expect(spread.group, "8.5 spreads the inner planets across half the frame").toBeUndefined();
+    expect(spread.labelled.map((entry) => entry.object.id)).toContain("earth");
+
+    // Compressed: one label, and none of its members labelled separately.
+    const packed = layout(8.7, 1920, 669);
+    expect(packed.group?.name).toBe("Inner planets");
+    expect(packed.group?.members.length ?? 0).toBeGreaterThanOrEqual(2);
+    for (const id of ["mercury", "venus", "earth", "mars"]) {
+      expect(
+        packed.labelled.some((entry) => entry.object.id === id),
+        `${id} is labelled individually as well as inside the group`,
+      ).toBe(false);
+    }
+    // The group names what it stands for, so nothing is lost to a reader.
+    for (const member of packed.group?.members ?? []) {
+      expect(member.length).toBeGreaterThan(0);
+    }
+  });
+
   it("never places two labels on top of each other", () => {
     for (let logR = MIN_LOG_R; logR <= MAX_LOG_R; logR += 0.25) {
       for (const [width, height] of [

@@ -883,8 +883,25 @@ export const SCALE_LEVELS: ScaleLevel[] = [
     id: "horizon",
     name: "The observable universe",
     fromLogR: 22.6,
-    insight: "This is as far as light has had time to travel. It is not the edge of anything.",
+    // NOT "as far as light has had time to travel" — that distance is about
+    // 13.8 billion light-years, and stating it as 46 is the single most common
+    // error made about this number. 46 is where the emitting matter is NOW:
+    // the light took 13.8 billion years, and space expanded underneath it the
+    // whole way. The object's own uncertaintyNote carries the full range.
+    insight:
+      "Light has been on its way for 13.8 billion years — but space expanded while it travelled, so whatever emitted it is now about 46 billion light-years away. Not an edge; a limit on what has reached us.",
   },
+];
+
+/**
+ * What the page is for, in two sentences. It appears twice — inside the model
+ * once the camera reaches the widest scale, and as the closing section after
+ * the text journey — so it lives here rather than being typed into both and
+ * left to drift apart.
+ */
+export const CLOSING_LINES = [
+  "At the start, the Sun filled the screen. Its entire neighbourhood is now smaller than the marker standing in for it.",
+  "Pulling back did not make home matter less. It showed how much context was missing from the first view.",
 ];
 
 export function levelAt(logR: number): ScaleLevel {

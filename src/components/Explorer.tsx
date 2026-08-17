@@ -11,7 +11,7 @@ import {
   percentOf,
   radiusKm,
 } from "../lib/camera";
-import { OBJECTS, levelAt, objectById } from "../data/cosmos";
+import { CLOSING_LINES, OBJECTS, levelAt, objectById } from "../data/cosmos";
 import { PHOTO_MIN_PX, TILT_Y, layout } from "../lib/layout";
 import { aphelion, perihelion } from "../lib/orbits";
 import { AU_KM, LY_KM, format } from "../lib/units";
@@ -95,6 +95,7 @@ export default function Explorer() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [hasZoomed, setHasZoomed] = useState(false);
+  const [journeyOpen, setJourneyOpen] = useState(false);
 
   const targetRef = useRef(MIN_LOG_R);
   const currentRef = useRef(MIN_LOG_R);
@@ -158,6 +159,19 @@ export default function Explorer() {
 
   useEffect(() => {
     reduceMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+
+  // The nav's "Text version" link targets the journey, which is now collapsed.
+  // Browsers do not reliably expand a closed <details> on fragment navigation,
+  // and a link that scrolls to a summary the reader still has to click is a
+  // broken link with extra steps — so open it here instead.
+  useEffect(() => {
+    const openIfTargeted = () => {
+      if (window.location.hash === "#journey-text") setJourneyOpen(true);
+    };
+    openIfTargeted();
+    window.addEventListener("hashchange", openIfTargeted);
+    return () => window.removeEventListener("hashchange", openIfTargeted);
   }, []);
 
   useEffect(() => {
@@ -242,13 +256,32 @@ export default function Explorer() {
   }, [zoomBy, zoomTo]);
 
   /* --- announcements ---------------------------------------------------- */
-  // Only on crossing into a named band, never per frame: a live region fed an
-  // eased value would announce several times a second (CLAUDE.md has the scar).
+  // Announce when the camera SETTLES, never per frame. Firing per frame feeds
+  // a live region an eased value several times a second (CLAUDE.md has that
+  // scar), but the fix for it — fire only when the band changes — was wrong in
+  // a way nobody hears unless they use the page with a screen reader: the band
+  // changes mid-ease, so the radius captured with it was whatever the camera
+  // was passing through at the time, and nothing ever corrected it. A sighted
+  // reader saw 452 million km while a screen-reader reader was told 773
+  // million; at the widest scale the two differed by a factor of 12.
+  //
+  // Settling is the honest trigger. It is once per gesture rather than once
+  // per frame, and it reads the same `logR` the readout renders from, so the
+  // two cannot disagree. spec/interaction.test.tsx holds them together.
+  const announcedRef = useRef(false);
   useEffect(() => {
-    if (level.id === levelRef.current) return;
+    // Still easing: targetRef is where the camera is going, logR is where it is.
+    if (logR !== targetRef.current) return;
+    // Don't announce the opening state — nobody asked for it and a live region
+    // that speaks on load is noise.
+    if (!announcedRef.current) {
+      announcedRef.current = true;
+      levelRef.current = level.id;
+      return;
+    }
     levelRef.current = level.id;
     setAnnouncement(`${level.name}. Visible radius ${reading.primary}.`);
-  }, [level, reading.primary]);
+  }, [logR, level, reading.primary]);
 
   /* --- selection -------------------------------------------------------- */
   const select = useCallback((id: string, trigger: HTMLElement | null) => {
@@ -474,8 +507,29 @@ export default function Explorer() {
 
   const showUnitNotice = logR > LY_CROSS - 0.35 && logR < LY_CROSS + 0.9;
 
+  /* --- camera radius is not the horizon --------------------------------- */
+  // The camera can pull back further than the horizon itself, on purpose: the
+  // widest scale has to fit the whole circle on screen with room to label it.
+  // The cost is that the readout says one number ("visible radius 53 billion
+  // light-years") directly beneath a band named after a different one, and a
+  // reader is entitled to read that as the size of the observable universe.
+  // Whenever the camera is outside the horizon, say which number is which.
+  // Both are derived, so neither can drift from what is drawn.
+  // Settled at the far end — not merely passing through it on the way.
+  const atWidest = logR >= MAX_LOG_R && logR === targetRef.current;
+
+  const horizonKm = objectById("observable-universe")?.distanceKm ?? 0;
+  const horizonReading = format(horizonKm);
+  const cameraIsBeyondHorizon = radiusKm(logR) > horizonKm;
+
   return (
     <div className="explorer">
+      {/* The console is the model, the number that says what scale it is, and
+          the controls that drive it. It exists as an element so the phone's
+          sticky control bar has a containing block that ENDS here: the bar
+          stays with the model while the model is on screen, and releases
+          rather than riding over the reading sections below. */}
+      <div className="explorer__console">
       <div className="explorer__plate">
       <div
         className="explorer__stage"
@@ -520,7 +574,59 @@ export default function Explorer() {
               </button>
             </li>
           ))}
+          {/*
+            One label for the inner planets once the frame has compressed them.
+            It is a span, not a button: there is nothing left to point at — the
+            four of them share a few pixels at this scale — and a control that
+            opens one arbitrary member's panel would be worse than none. Each
+            planet keeps its own entry in the text journey below, and zooming
+            in restores the individual buttons.
+          */}
+          {view.group && (
+            <li
+              className={`label label--group label--${view.group.labelSide}`}
+              data-testid="group-label"
+              style={{
+                transform: `translate(${view.group.labelX}px, ${view.group.labelY}px)${
+                  view.group.labelSide === "left" ? " translateX(-100%)" : ""
+                }`,
+              }}
+            >
+              <span className="label__button label__button--static">
+                <span className="label__text">
+                  <span className="label__name">{view.group.name}</span>
+                  <span className="label__type">{view.group.members.join(" · ")}</span>
+                </span>
+              </span>
+            </li>
+          )}
         </ul>
+
+        {/*
+          The end of the journey belongs where the journey happened. Reaching
+          the widest scale used to leave the reader looking at a marker with no
+          statement of what it meant — the point of the whole page sat below
+          the text journey and the sources, which is past where most readers
+          stop. Shown only once the camera has actually settled at the far end,
+          so it is a conclusion rather than a caption.
+        */}
+        {atWidest && (
+          <div className="stage__coda" data-testid="coda">
+            {CLOSING_LINES.map((line) => (
+              <p className="stage__coda-line" key={line}>
+                {line}
+              </p>
+            ))}
+            <button
+              type="button"
+              className="stage__coda-return"
+              data-testid="return-to-sun"
+              onClick={() => zoomTo(MIN_LOG_R)}
+            >
+              Return to the Sun
+            </button>
+          </div>
+        )}
 
         {!hasZoomed && (
           <p className="explorer__hint">
@@ -543,6 +649,15 @@ export default function Explorer() {
           )}
         </p>
         <p className="readout__insight">{level.insight}</p>
+
+        {cameraIsBeyondHorizon && (
+          <p className="readout__caveat" data-testid="horizon-caveat">
+            <strong>{reading.primary}</strong> is the camera radius — how far
+            this frame reaches. The observable horizon, drawn as the dashed
+            circle, is <strong>{horizonReading.primary}</strong>. The view is
+            pulled back past it so the whole circle fits on screen.
+          </p>
+        )}
 
         <div className="scalebar" aria-hidden="true">
           <span className="scalebar__bar" style={{ width: `${barPx}px` }} />
@@ -604,6 +719,7 @@ export default function Explorer() {
         >
           Restart at the Sun
         </button>
+      </div>
       </div>
 
       <p className="visually-hidden" aria-live="polite" data-testid="announcer">
@@ -768,11 +884,27 @@ export default function Explorer() {
         </p>
       </details>
 
-      <section className="journey" aria-label="The scale journey in text">
-        <h2>The journey, in text</h2>
+      {/*
+        Collapsed, not removed. Twenty-eight entries with a source link each is
+        the longest thing on the page, and leaving it open pushed the closing
+        section so far down that the point of the page was effectively unread.
+        <details> keeps every word in the DOM whether or not it is open, so the
+        textual fallback is still shipped in the built HTML and still reachable
+        by assistive technology — it just no longer sits between the reader and
+        the end. `journeyOpen` handles the nav link, which must open it.
+      */}
+      <details
+        className="journey"
+        id="journey-text"
+        open={journeyOpen}
+        onToggle={(event) => setJourneyOpen(event.currentTarget.open)}
+        aria-label="The scale journey in text"
+      >
+        <summary className="journey__summary">Read the journey as text</summary>
         <p>
           A summary for reading rather than zooming. Every object here appears
-          on the map at the scale named beside it.
+          on the map at the scale named beside it. All twenty-eight are listed
+          in order of distance, each with the source its figures came from.
         </p>
         <ol>
           {OBJECTS.map((object) => (
@@ -788,7 +920,7 @@ export default function Explorer() {
             </li>
           ))}
         </ol>
-      </section>
+      </details>
     </div>
   );
 }

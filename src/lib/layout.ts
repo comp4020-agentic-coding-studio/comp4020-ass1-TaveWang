@@ -142,10 +142,37 @@ export interface Placed {
   labelSide: LabelSide;
 }
 
+/**
+ * The four rocky planets, once the frame has squeezed them together. Below
+ * `INNER_GROUP_AT` their labels stack on each other and on the Sun, and four
+ * names fighting over eighty pixels tell a reader less than one name does.
+ */
+const INNER_IDS = new Set(["mercury", "venus", "earth", "mars"]);
+/**
+ * Group them once the outermost of them is inside this fraction of the frame.
+ * Calibrated against the frame the audit caught rather than picked: at a
+ * visible radius of 3.02 au, Mars sits at 0.50 and Venus, Earth and Mars were
+ * all fighting for the middle of the picture, one of them across the Sun.
+ */
+const INNER_GROUP_AT = 0.55;
+
+/** One label standing in for several objects too compressed to label apart. */
+export interface GroupLabel {
+  id: string;
+  name: string;
+  /** Display names of what it stands for, in radial order. */
+  members: string[];
+  labelX: number;
+  labelY: number;
+  labelSide: LabelSide;
+}
+
 export interface Layout {
   placed: Placed[];
   /** The subset whose labels survived the collision pass, highest priority first. */
   labelled: Placed[];
+  /** Set when the inner planets are drawn compressed enough to label as one. */
+  group?: GroupLabel;
   /** True once the Sun is too small to draw honestly and becomes a location marker. */
   sunIsMarker: boolean;
   sunRadiusPx: number;
@@ -404,9 +431,28 @@ export function layout(
   // a label that flickers between frames is worse than no label.
   const charWidth = width < 600 ? 6 : 7;
   const gap = labelGap(width);
+
+  // The Sun is not a label, so the label-versus-label collision pass never
+  // considered it — and "Venus" was free to land across the photosphere, where
+  // white text on a white-hot photograph is unreadable. Everything except the
+  // Sun's own caption now has to clear its disc.
+  const sunBlock = {
+    left: cx - sunDrawnPx,
+    right: cx + sunDrawnPx,
+    top: cy - sunDrawnPx,
+    bottom: cy + sunDrawnPx,
+  };
+
+  const innerOnScreen = placed.filter((entry) => INNER_IDS.has(entry.object.id));
+  const groupInner =
+    innerOnScreen.length >= 2 &&
+    Math.max(...innerOnScreen.map((entry) => entry.fraction)) <= INNER_GROUP_AT;
+
   const candidates = placed
     .filter((entry) => {
       if (entry.object.id === "sun") return true;
+      // Grouped: their individual labels are replaced by one, below.
+      if (groupInner && INNER_IDS.has(entry.object.id)) return false;
       if (entry.object.structureRadiusKm !== undefined) {
         return entry.structure !== undefined && entry.structure.r > 28;
       }
@@ -434,6 +480,7 @@ export function layout(
       if (box.left < 4 || box.right > width - 4 || box.top < 4 || box.bottom > height - 4) {
         continue;
       }
+      if (entry.object.id !== "sun" && overlaps(box, sunBlock)) continue;
       if (boxes.some((other) => overlaps(box, other))) continue;
       boxes.push(box);
       labelled.push({ ...entry, labelX: x, labelY: y, labelSide: placement.side });
@@ -441,7 +488,57 @@ export function layout(
     }
   }
 
-  return { placed, labelled, sunIsMarker: sunIsPin, sunRadiusPx: sunDrawnPx };
+  // --- one label for the compressed inner planets --------------------------
+  // Anchored on the outermost of them, so it points at the edge of the cluster
+  // rather than at the Sun in the middle of it, and placed through the same
+  // collision pass as everything else.
+  let group: GroupLabel | undefined;
+  if (groupInner && labelled.length < maxLabels) {
+    const anchor = innerOnScreen.reduce((far, entry) =>
+      entry.fraction > far.fraction ? entry : far,
+    );
+    const name = "Inner planets";
+    const clearance = (anchor.symbolPx ?? 0) + 8;
+    for (const placement of PLACEMENTS) {
+      let x = anchor.x + (placement.dx > 0 ? clearance : -clearance);
+      const y = anchor.y + placement.dy;
+      let box = labelBox(name, x, y, charWidth, placement.side, gap, false);
+      // Unlike an object's own label, this one may slide horizontally to fit.
+      // It marks a cluster rather than a point, so a few pixels along the axis
+      // costs nothing — and without it the phone loses the group entirely: at
+      // 390px the box overshot the frame by five pixels on the outward side,
+      // and the only alternative ran back across the Sun in the middle.
+      if (box.right > width - 4) {
+        const shift = box.right - (width - 4);
+        x -= shift;
+        box = { ...box, left: box.left - shift, right: box.right - shift };
+      } else if (box.left < 4) {
+        const shift = 4 - box.left;
+        x += shift;
+        box = { ...box, left: box.left + shift, right: box.right + shift };
+      }
+      if (box.left < 4 || box.right > width - 4 || box.top < 4 || box.bottom > height - 4) {
+        continue;
+      }
+      if (overlaps(box, sunBlock)) continue;
+      if (boxes.some((other) => overlaps(box, other))) continue;
+      boxes.push(box);
+      group = {
+        id: "inner-planets",
+        name,
+        members: innerOnScreen
+          .slice()
+          .sort((a, b) => a.object.distanceKm - b.object.distanceKm)
+          .map((entry) => entry.object.name),
+        labelX: x,
+        labelY: y,
+        labelSide: placement.side,
+      };
+      break;
+    }
+  }
+
+  return { placed, labelled, group, sunIsMarker: sunIsPin, sunRadiusPx: sunDrawnPx };
 }
 
 /**

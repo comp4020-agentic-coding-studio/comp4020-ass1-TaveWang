@@ -45,6 +45,18 @@ Every labelled object is a real `<button>`: `Tab` reaches it, `Enter` opens its
 details, and closing returns focus to where it was. Nothing essential is
 pointer-only or hover-only.
 
+On a phone the controls are a sticky bar at the foot of the model, so zooming
+never requires scrolling to find the controls first; it releases once the model
+is scrolled past, rather than riding over the reading sections. When the inner
+planets compress into the middle of the frame they are labelled once, as **Inner
+planets**, naming the members — four labels fighting over eighty pixels tell a
+reader less than one does. Reaching the widest scale shows the page's closing
+point inside the model, with a **Return to the Sun** action.
+
+The full text journey is still shipped in the built HTML, collapsed behind a
+**Read the journey as text** disclosure so it no longer sits between the reader
+and the end of the page. The nav link opens it.
+
 ## What it is honest about
 
 The genre makes it very easy to lie by omission, so the page says the following
@@ -77,6 +89,14 @@ out loud, in the **Method & scale** disclosure and in each object's details:
 - **The Solar System has no single edge.** The heliopause, the gravitational
   reach of the Sun and the hypothesised Oort Cloud are three different ideas,
   and the page treats them as three different ideas.
+- **The camera radius is not the observable horizon.** The widest view reaches
+  about 53 billion light-years because the horizon circle has to fit inside the
+  frame with room to label it; the horizon itself is about 46 billion. Whenever
+  the camera is outside it, the readout says which number is which rather than
+  letting one be read as the other.
+- **The horizon is not "as far as light has had time to travel."** That distance
+  is about 13.8 billion light-years. 46 is where the emitting matter is *now*:
+  space expanded while the light was in transit and carried its source outward.
 - **Faint background stars are illustrative texture** and are never labelled.
   Every named object is sourced.
 

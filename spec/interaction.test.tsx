@@ -447,17 +447,49 @@ describe("accessibility", () => {
     await zoomOut(6);
     const first = announcer()?.textContent ?? "";
     expect(first).toMatch(/Solar System|Inner|Outer/i);
+  });
 
-    // A step that stays inside the same band must not re-announce.
-    const beforeSmallStep = announcer()?.textContent;
+  it("tells a screen reader the same scale the screen is showing", async () => {
+    // Regression. The announcement used to fire on crossing a band boundary
+    // and carry whatever radius the camera happened to be passing through at
+    // that instant — mid-ease, on its way somewhere else. Nothing corrected it
+    // once the camera stopped, so the two halves of the interface reported
+    // different numbers for the same view: 452 million km on screen against
+    // 773 million announced, and at the widest scale 53 billion light-years
+    // against 4.21 billion. A sighted reader never saw it; that is exactly why
+    // it needed a test rather than another look at the page.
+    const { container, zoomOut, stage } = setup();
+    const announcer = () => container.querySelector("[data-testid='announcer']")?.textContent ?? "";
+    const band = () => container.querySelector(".readout__level")?.textContent ?? "";
+    const shown = () =>
+      container.querySelector("[data-testid='scale-primary']")?.textContent ?? "";
+
+    const agree = (where: string) => {
+      expect(announcer(), `${where}: nothing was announced`).not.toBe("");
+      expect(
+        announcer(),
+        `${where}: the live region says "${announcer()}" while the readout shows "${band()} / ${shown()}"`,
+      ).toBe(`${band()}. Visible radius ${shown()}.`);
+    };
+
+    for (const steps of [4, 4, 6, 6]) {
+      await zoomOut(steps);
+      agree(`after ${steps} steps out`);
+    }
+
+    // And at the far end, where the discrepancy was twelvefold.
     await act(async () => {
-      fireEvent.change(
-        container.querySelector("[data-testid='zoom-slider']") as HTMLInputElement,
-        { target: { value: String(Number(0)) } },
-      );
+      fireEvent.keyDown(stage, { key: "End" });
     });
     await settle();
-    expect(typeof beforeSmallStep).toBe("string");
+    agree("at the widest scale");
+
+    // Back to the Sun, the other extreme.
+    await act(async () => {
+      fireEvent.keyDown(stage, { key: "Home" });
+    });
+    await settle();
+    agree("back at the Sun");
   });
 
   it("gives the model a keyboard-reachable, named control surface", () => {

@@ -336,10 +336,49 @@ and dumping its DOM.
 **Never intercept Ctrl/⌘+wheel.** That is the browser's own page zoom. Custom
 wheel and pinch handling is scoped to the model element only, never the page.
 
-**Announce scale bands, not frames.** The live region fires only when the
-reader crosses into a *named* band. An `aria-live` fed an eased per-frame value
-announces several times a second — the same scar this file already carried from
-the previous prototype's distance readout, in a new shape.
+**A live region must be fed the settled state, never a value caught in
+passing.** "Announce bands, not frames" was the right instinct and the wrong
+implementation. Firing on a band change meant the radius announced with it was
+whatever the camera happened to be passing through mid-ease, and nothing
+corrected it once the camera stopped: the screen showed 452 million km while the
+live region said 773 million, and at the widest scale the two differed by a
+factor of twelve. The trigger is now *settling* — once per gesture, not once per
+frame, reading the same `logR` the readout renders from, so the two cannot
+disagree. **An accessibility bug is invisible to whoever built it unless a test
+holds the two representations against each other**, which is why
+`spec/interaction.test.tsx` now asserts the announcement equals the readout
+verbatim at both ends of the range.
+
+**`overflow-x: hidden` on `<body>` silently disables `position: sticky`.** It
+computes `overflow-y` to `auto`, making `<body>` a scroll container that never
+actually scrolls, so a sticky descendant has a scrollport that cannot move. The
+phone control bar was written correctly and did nothing at all. Keep that rule
+on `<html>` only.
+
+**A bar pinned to the bottom of the viewport can only avoid covering something
+if the content above it fits — so measure the budget before designing it.** At
+390×844 there are 563px between the masthead and the fold, and a 439px stage
+plus a 156px readout plus a 63px control bar do not fit in it. The bar then
+lands on the readout, which is the page's entire point. The phone stage gives
+back seven vh. Both viewports are marked in full, so on the smaller one a
+deliberate trade beats an accidental one.
+
+**The collision pass has to know about everything that is drawn, not only the
+things it places.** Labels were tested against other labels, so "Venus" was free
+to land across the Sun's photosphere — white text on a white-hot photograph, at
+1920×1080, on the deployed page. The Sun's disc is now an obstacle like any
+other box, and once the inner planets compress below `INNER_GROUP_AT` they get a
+single "Inner planets" label naming its members instead of four fighting over
+eighty pixels.
+
+**Say which number is which when two of them are both true.** The camera can
+pull back past the observable horizon — it has to, or the horizon circle never
+fits on screen — so the readout showed a 53-billion-light-year *visible radius*
+directly beneath a band named after a 46-billion-light-year *horizon*. Both
+figures are right; presenting them without distinguishing them is not. And the
+horizon is emphatically **not** "as far as light has had time to travel" (that
+is about 13.8 billion light-years) — it is where the emitting matter is now,
+after expansion carried it outward while its light was in transit.
 
 ## stylelint: what I configured and what I left alone
 

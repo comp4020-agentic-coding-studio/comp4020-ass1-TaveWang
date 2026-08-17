@@ -1,9 +1,10 @@
 ---
 import Explorer from "../components/Explorer";
-import { allSources } from "../data/cosmos";
+import { CLOSING_LINES, allSources } from "../data/cosmos";
 import "../styles/global.css";
 
 const sources = allSources();
+const closing = CLOSING_LINES;
 ---
 
 <!doctype html>
@@ -62,14 +63,7 @@ const sources = allSources();
       </section>
 
       <section class="ending" aria-label="In closing">
-        <p class="ending__line">
-          At the start, the Sun filled the screen. Its entire neighbourhood is
-          now smaller than the marker standing in for it.
-        </p>
-        <p class="ending__line">
-          Pulling back did not make home matter less. It showed how much context
-          was missing from the first view.
-        </p>
+        {closing.map((line) => <p class="ending__line">{line}</p>)}
       </section>
     </main>
 
