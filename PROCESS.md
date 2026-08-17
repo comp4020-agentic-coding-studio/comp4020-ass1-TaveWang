@@ -47,9 +47,9 @@ line when it renders as two, because I had forgotten the category subtitle under
 the name. Fixing the estimate took it from three failures to none —
 [`ee32b52`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/ee32b52).
 
-**The bug nobody sighted could see.** Auditing the deployed page at both marking
-viewports, I compared what the screen said against what the live region
-announced. They disagreed everywhere: 452 million km on screen against 773
+**The bug nobody sighted could see.** Auditing the deployed page at both
+marking viewports, I compared the screen against the live region. They
+disagreed everywhere: 452 million km on screen against 773
 million announced; at the widest scale, 53 billion light-years against 4.21
 billion. My own rule — announce bands, not frames — had caused it. Firing on a
 band change captured the radius mid-ease, on its way elsewhere, and nothing
@@ -58,4 +58,4 @@ proved the new test failed against the old code before keeping it. The same
 audit caught the readout calling 53 billion light-years a "visible radius" under
 a band named for a 46-billion horizon, and that horizon described as "as far as
 light has had time to travel" — which is 13.8 billion, not 46 —
-[`PLACEHOLDER`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/PLACEHOLDER).
+[`dfedecb`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-TaveWang/commit/dfedecb).
